@@ -49,13 +49,11 @@ void setup_gpu_worker_count(int _gpu_count, int _worker_count)
 
 void on_write_end(uv_write_t *req, int status)
 {
-    LOG("line 52\n");
     if (status < 0)
     {
         LOGERR("error on_write_end %d\n", status);
     }
     free(req);
-    LOG("finished\n")
 }
 
 std::mutex write_mutex;
@@ -81,27 +79,16 @@ void mine_with_timer(uv_timer_t *timer);
 
 static void register_proxy(uv_stream_t* tcp)
 {
-    // uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
-    // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
-    char method_str[] = "hello\n";
-    // char method_str[] = {'h', 'e', 'l', 'l', '\n'};
-    LOG(method_str);
-    LOG("\n");
-    LOG("made str\n");
-    // uv_buf_t buf = uv_buf_init(method_str, sizeof(method_str));
+    char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+
     uv_buf_t buf = uv_buf_init(method_str, strlen(method_str)+1);
-    LOG("made buf\n");
-    LOG(buf.base);
-    LOG("\n");
 
     uv_write_t* write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
-    LOG("made req\n");
     write_req->data = method_str;
-    LOG("made buf count\n");
 
     uv_write(write_req, tcp, &buf, 1, on_write_end);
     
-    LOG("made write\n");
+    LOG("Proxy registered\n");
 }
 
 // seems important
@@ -324,14 +311,12 @@ void on_connect(uv_connect_t *req, int status)
     LOG("the server is connected %d %p\n", status, req);
 
     tcp = req->handle;
-    register_proxy((uv_stream_t*)req);
-    uv_read_start(req->handle, alloc_buffer, on_read);
+    register_proxy((uv_stream_t*)tcp);
 }
 
 void connect_to_broker(){
     uv_socket = (uv_tcp_t *)malloc(sizeof(uv_tcp_t));
     uv_tcp_nodelay(uv_socket, 1);
-    // uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));    
     
     struct sockaddr_in dest;
     uv_ip4_addr(broker_ip, port, &dest);
@@ -344,12 +329,6 @@ void connect_to_broker(){
 
     uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
 
-    // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
-    // worker_stream_callback((cudaStream_t) {}, (cudaError_t) {}, method_str);
-    LOG("Proxy registered\n");
-
-    // uv_read_start((uv_stream_t*)uv_socket, alloc_buffer, on_read);
-    // LOG("Read from buf\n");
 }
 
 bool is_valid_ip_address(char *ip_address)
