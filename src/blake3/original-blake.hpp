@@ -331,6 +331,7 @@ INLINE __device__ void copy_good_nonce(blake3_hasher *thread_hasher, blake3_hash
     }
 }
 
+// seems very important
 __global__ void blake3_hasher_mine(void *global_hasher)
 {
     blake3_hasher local_hasher = *reinterpret_cast<blake3_hasher*>(global_hasher);

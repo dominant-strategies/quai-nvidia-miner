@@ -230,6 +230,7 @@ INLINE __device__ uint32_t ROTR32(uint32_t w, uint32_t c)
     else                           \
         ((void)0)
 
+// seems interesting
 typedef struct
 {
     uint8_t buf[BLAKE3_BUF_CAP];

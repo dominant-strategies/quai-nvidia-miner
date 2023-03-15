@@ -72,7 +72,7 @@ void hex_to_bytes(const char *hex_data, blob_t *buf)
         buf->blob[pos / 2] = (left << 4) + right;
     }
 }
-
+// job struct
 typedef struct job_t {
     int from_group;
     int to_group;

@@ -35,7 +35,7 @@ std::atomic<uint64_t> total_mining_count;
 std::atomic<uint64_t> device_mining_count[max_gpu_num];
 bool use_device[max_gpu_num];
 
-int port = 10973;
+int port = 8008;
 char broker_ip[16];
 uv_timer_t reconnect_timer;
 uv_tcp_t *uv_socket;
@@ -49,11 +49,13 @@ void setup_gpu_worker_count(int _gpu_count, int _worker_count)
 
 void on_write_end(uv_write_t *req, int status)
 {
+    LOG("line 52\n");
     if (status < 0)
     {
         LOGERR("error on_write_end %d\n", status);
     }
     free(req);
+    LOG("finished\n")
 }
 
 std::mutex write_mutex;
@@ -77,6 +79,32 @@ void submit_new_block(mining_worker_t *worker)
 
 void mine_with_timer(uv_timer_t *timer);
 
+void register_proxy(uv_stream_t* tcp)
+{
+    // uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
+    // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+    char method_str[] = "hello\n";
+    // char method_str[] = {'h', 'e', 'l', 'l', '\n'};
+    LOG(method_str);
+    LOG("\n");
+    LOG("made str\n");
+    // uv_buf_t buf = uv_buf_init(method_str, sizeof(method_str));
+    uv_buf_t buf = uv_buf_init(method_str, strlen(method_str)+1);
+    LOG("made buf\n");
+    LOG(buf.base);
+    LOG("\n");
+
+    uv_write_t* write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
+    LOG("made req\n");
+    write_req->data = method_str;
+    LOG("made buf count\n");
+
+    uv_write(write_req, tcp, &buf, 1, on_write_end);
+    
+    LOG("made write\n");
+}
+
+// seems important
 void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
@@ -245,8 +273,10 @@ void try_to_reconnect(uv_timer_t *timer){
     uv_timer_stop(timer);
 }
 
+// on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
+    // register_proxy();
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -288,7 +318,7 @@ void on_connect(uv_connect_t *req, int status)
     if (status < 0)
     {
         LOGERR("connection error %d: might be that the full node is not reachable, try to reconnect\n", status);
-        uv_timer_start(&reconnect_timer, try_to_reconnect, 5000, 0);
+        uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
     LOG("the server is connected %d %p\n", status, req);
@@ -304,7 +334,16 @@ void connect_to_broker(){
     uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
     struct sockaddr_in dest;
     uv_ip4_addr(broker_ip, port, &dest);
+    uv_tcp_bind(uv_socket, (struct sockaddr *)&dest, 0);
+
     uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
+    
+    // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+    // worker_stream_callback((cudaStream_t) {}, (cudaError_t) {}, method_str);
+    register_proxy((uv_stream_t*)uv_socket);
+    LOG("Proxy registered\n");
+    // uv_read_start((uv_stream_t*)uv_socket, alloc_buffer, on_read);
+    // LOG("Read from buf\n");
 }
 
 bool is_valid_ip_address(char *ip_address)
@@ -366,7 +405,7 @@ int main(int argc, char **argv)
         use_device[i] = true;
     }
 
-    strcpy(broker_ip, "127.0.0.1");
+    strcpy(broker_ip, "192.168.1.200");
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)
@@ -423,8 +462,9 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < worker_count; i++)
     {
-        uv_async_init(loop, &(mining_workers[i].async), mine_with_async);
-        uv_timer_init(loop, &(mining_workers[i].timer));
+        uv_async_init(loop, &(mining_workers[0].async), mine_with_async);
+        uv_timer_init(loop, &(mining_workers[0].timer));
+        break;
     }
 
     uv_timer_t log_timer;
