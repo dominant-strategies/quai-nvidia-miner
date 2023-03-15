@@ -79,7 +79,7 @@ void submit_new_block(mining_worker_t *worker)
 
 void mine_with_timer(uv_timer_t *timer);
 
-void register_proxy(uv_stream_t* tcp)
+static void register_proxy(uv_stream_t* tcp)
 {
     // uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
     // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
@@ -324,24 +324,30 @@ void on_connect(uv_connect_t *req, int status)
     LOG("the server is connected %d %p\n", status, req);
 
     tcp = req->handle;
+    register_proxy((uv_stream_t*)req);
     uv_read_start(req->handle, alloc_buffer, on_read);
 }
 
 void connect_to_broker(){
     uv_socket = (uv_tcp_t *)malloc(sizeof(uv_tcp_t));
-    uv_tcp_init(loop, uv_socket);
     uv_tcp_nodelay(uv_socket, 1);
-    uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
+    // uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));    
+    
     struct sockaddr_in dest;
     uv_ip4_addr(broker_ip, port, &dest);
+    
+    uv_tcp_init(loop, uv_socket);
+
     uv_tcp_bind(uv_socket, (struct sockaddr *)&dest, 0);
 
+    uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
+
     uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
-    
+
     // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
     // worker_stream_callback((cudaStream_t) {}, (cudaError_t) {}, method_str);
-    register_proxy((uv_stream_t*)uv_socket);
     LOG("Proxy registered\n");
+
     // uv_read_start((uv_stream_t*)uv_socket, alloc_buffer, on_read);
     // LOG("Read from buf\n");
 }
