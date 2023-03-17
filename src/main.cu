@@ -18,6 +18,8 @@
 #include "getopt.h"
 #include "log.h"
 
+// Need RPCMarshalHeaderAbsolute()
+
 std::atomic<uint32_t> found_solutions{0};
 
 typedef std::chrono::high_resolution_clock Time;
@@ -147,7 +149,7 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
 
     mining_template_t *template_ptr = load_worker__template(worker);
     job_t *job = template_ptr->job;
-    uint32_t chain_index = job->from_group * group_nums + job->to_group;
+    uint32_t chain_index = 0;
     mining_counts[chain_index].fetch_sub(mining_steps);
     mining_counts[chain_index].fetch_add(hasher_hash_count(worker, true));
     total_mining_count.fetch_add(hasher_hash_count(worker, true));
@@ -244,6 +246,7 @@ server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
     else
     {
         assert(read_blob.blob == read_buf);
+        LOG("doing assert\n")
         memcpy(read_buf + read_blob.len, buf->base, nread);
         read_blob.len += nread;
         return decode_server_message(&read_blob);
@@ -275,28 +278,54 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
     {
         return;
     }
+    // LOG("performing onread\n");
 
-    server_message_t *message = decode_buf(buf, nread);
-    if (message)
-    {
-        switch (message->kind)
-        {
-        case JOBS:
-            for (int i = 0; i < message->jobs->len; i++)
-            {
-                update_templates(message->jobs->jobs[i]);
-            }
-            start_mining_if_needed();
-            break;
+    // LOG(buf->base);
 
-        case SUBMIT_RESULT:
-            LOG("submitted: %d -> %d: %d \n", message->submit_result->from_group, message->submit_result->to_group, message->submit_result->status);
-            break;
-        }
-        free_server_message_except_jobs(message);
-    }
+    server_message_t* server_msg = decode_buf(buf, nread);
+    LOG("decoded buf\n");
+    // char[] header = (char*) malloc(sizeof(header_msg_t));
+    // header->header_msg = buf->base;
+    // strcpy(header->header_msg, "testsync");
 
-    free(buf->base);
+    // LOG(buf->base);
+
+    // free(buf->base);
+    // // LOG(header->header_msg);
+    // LOG(header->header_msg);
+
+    // if (server_msg) {
+    //     header_msg_t* header = (header_msg_t*)(server_msg->jobs->jobs_list[0]);
+    //     LOG("received header from server\n");
+    // }
+    free_server_message(server_msg);
+
+    // header_msg_t* header = (header_msg_t*)(buf->base);
+
+    // if (header) {
+    //     LOG("received header from server");
+    // }
+
+    // if (message)
+    // {
+    //     // LOG("test")
+    //     switch (message->kind)
+    //     {
+    //     case JOBS:
+    //         for (int i = 0; i < message->job->len; i++)
+    //         {
+    //             update_templates(message->job->jobs_list[i]);
+    //         }
+    //         start_mining_if_needed();
+    //         break;
+
+    //     case SUBMIT_RESULT:
+    //         LOG("submitted: %d -> %d: %d \n", message->submit_result->from_group, message->submit_result->to_group, message->submit_result->status);
+    //         break;
+    //     }
+    //     free_server_message_except_jobs(message);
+    // }
+
     // uv_close((uv_handle_t *) server, free_close_cb);
 }
 
@@ -308,10 +337,11 @@ void on_connect(uv_connect_t *req, int status)
         uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
-    LOG("the server is connected %d %p\n", status, req);
+    LOG("the server is connected %d %p\n", status, *req);
 
     tcp = req->handle;
     register_proxy((uv_stream_t*)tcp);
+    uv_read_start(req->handle, alloc_buffer, on_read);
 }
 
 void connect_to_broker(){
@@ -390,7 +420,7 @@ int main(int argc, char **argv)
         use_device[i] = true;
     }
 
-    strcpy(broker_ip, "192.168.1.200");
+    strcpy(broker_ip, "192.168.1.195");
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)
