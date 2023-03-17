@@ -93,19 +93,6 @@ void free_job(job_t *job) {
     free(job);
 }
 
-typedef struct jobs_t {
-    job_t **jobs_list;
-    size_t len;
-} jobs_t;
-
-void free_jobs(jobs_t *jobs)
-{
-    for (size_t i = 0; i < jobs->len; i++) {
-        free_job(jobs->jobs_list[i]);
-    }
-    free(jobs->jobs_list);
-}
-
 typedef struct submit_result_t {
     int from_group;
     int to_group;
@@ -120,7 +107,7 @@ typedef enum server_message_kind {
 typedef struct server_message_t {
     server_message_kind kind;
     union {
-        jobs_t *jobs;
+        job_t *job;
         submit_result_t *submit_result;
     };
 } server_message_t;
@@ -130,7 +117,7 @@ void free_server_message(server_message_t *message)
     switch (message->kind)
     {
     case JOBS:
-        free_jobs(message->jobs);
+        free(message->job);
         break;
 
     case SUBMIT_RESULT:
@@ -146,8 +133,6 @@ void free_server_message_except_jobs(server_message_t *message)
     switch (message->kind)
     {
     case JOBS:
-        free(message->jobs->jobs_list);
-        free(message->jobs);
         break;
 
     case SUBMIT_RESULT:
@@ -244,21 +229,6 @@ void extract_job(uint8_t **bytes, job_t *job)
     // extract_blob(bytes, &job->target);
 }
 
-void extract_jobs(uint8_t **bytes, jobs_t *jobs)
-{
-    // // ssize_t jobs_size = extract_size(bytes);
-
-    // // LOG("jobs: %ld\n", jobs_size);
-
-    // jobs->len = 1;
-    // jobs->jobs_list = (job_t **)malloc(1 * sizeof(job_t*));
-    // for(ssize_t i = 0; i < 1; i++) {
-    //     jobs->jobs_list[i] = (job_t *)malloc(sizeof(job_t));
-    //     LOG("extracting one job\n");
-    //     extract_job(bytes, (jobs->jobs_list[i]));
-    // }
-}
-
 void extract_submit_result(uint8_t **bytes, submit_result_t *result)
 {
     result->from_group = extract_size(bytes);
@@ -296,9 +266,8 @@ server_message_t *decode_server_message(blob_t *blob)
     // {
     // case 0:
         server_message->kind = JOBS;
-        server_message->jobs = (jobs_t *)malloc(sizeof(jobs_t));
-        server_message->jobs->jobs_list[0] = new_job;
-        server_message->jobs->len = 1;
+        server_message->job = (job_t *)malloc(sizeof(job_t));
+        server_message->job = new_job;
 
         LOG("extracted jobs\n");
 
