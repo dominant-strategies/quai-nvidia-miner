@@ -294,10 +294,21 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
     // // LOG(header->header_msg);
     // LOG(header->header_msg);
 
-    // if (server_msg) {
-    //     header_msg_t* header = (header_msg_t*)(server_msg->jobs->jobs_list[0]);
-    //     LOG("received header from server\n");
-    // }
+    if (server_msg) {
+        LOG("received header from server\n");
+    }
+
+    switch (server_msg->kind)
+    {
+        case JOBS:
+            LOG("updating templates\n");
+            // update_templates(server_msg->job);
+            // LOG("updated templates\n");
+            start_mining_if_needed();
+            break;
+
+    }
+
     free_server_message(server_msg);
 
     // header_msg_t* header = (header_msg_t*)(buf->base);
