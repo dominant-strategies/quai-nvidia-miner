@@ -206,28 +206,14 @@ void write_blob(uint8_t **bytes, blob_t *blob)
 
 void extract_blob(uint8_t **bytes, blob_t *blob)
 {
-    LOG("extracting blob\n");
     ssize_t size = extract_size(bytes);
     blob->len = size;
     blob->blob = (uint8_t *)malloc(size * sizeof(uint8_t));
-    // LOG(blob->blob->);
     LOG("blob: %ld\n", blob->len);
     memcpy(blob->blob, *bytes, size);
     *bytes = *bytes + size;
 
-    // LOG("blob: %ld\n", blob->len);
-    // LOG("%s\n", bytes_to_hex(blob->blob, blob->len));
 }
-
-// void extract_job(uint8_t **bytes, job_t *job)
-// {
-//     // job->from_group = extract_size(bytes);
-//     // job->to_group = extract_size(bytes);
-//     // LOG("group: %d, %d\n", job->from_group, job->to_group);
-//     extract_blob(bytes, &job->header_blob);
-//     // extract_blob(bytes, &job->txs_blob);
-//     // extract_blob(bytes, &job->target);
-// }
 
 void extract_submit_result(uint8_t **bytes, submit_result_t *result)
 {
@@ -255,18 +241,11 @@ server_message_t *decode_server_message(blob_t *blob)
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
     // new_job->target.blob = (uint64_t*) malloc(sizeof(uint64_t));
     // new_job->target = memcpy()
-    LOG("about to copy target\n");
     memcpy(&new_job->target, bytes, sizeof(new_job->target));
-    LOG("copied target\n");
     new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
     new_job->header_blob.len = len;
     memcpy(new_job->header_blob.blob, bytes, len);
-    LOG("copied header blob\n");
     
-    // LOG((const char *)new_job->header_blob.blob)
-
-    LOG("Decoding server message. Len: %d\n", new_job->header_blob.len);
-
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
     // switch (extract_byte(&pos))
     // {
@@ -274,8 +253,6 @@ server_message_t *decode_server_message(blob_t *blob)
         server_message->kind = JOBS;
         // server_message->job = (job_t *)malloc(sizeof(job_t));
         server_message->job = new_job;
-
-        LOG("extracted jobs\n");
 
         // LOG("%p, %p, %p\n", bytes, pos, bytes + len);
         // break;

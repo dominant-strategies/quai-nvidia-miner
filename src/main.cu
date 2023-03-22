@@ -98,8 +98,6 @@ void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
 
-    LOG("in the mining function\n");
-
     int32_t to_mine_index = 0;
     if (to_mine_index == -1)
     {
@@ -107,10 +105,8 @@ void mine(mining_worker_t *worker)
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
-        LOG("mining with index %d\n", to_mine_index);
         // mining_counts[to_mine_index].fetch_add(mining_steps);
         setup_template(worker, load_template(to_mine_index));
-        LOG("setup template\n");
         start_worker_mining(worker);
 
         duration_t elapsed = Time::now() - start;
@@ -121,7 +117,6 @@ void mine(mining_worker_t *worker)
 void mine_with_req(uv_work_t *req)
 {
     mining_worker_t *worker = load_req_worker(req);
-    LOG("loaded req worker\n");
     mine(worker);
 }
 
@@ -171,10 +166,8 @@ void start_mining()
 
     for (uint32_t i = 0; i < 1; i++)
     {
-        LOG("loaded worker count\n");
         if (use_device[mining_workers[i].device_id])
         {
-            LOG("about to start work\n");
             uv_queue_work(loop, &req[i], mine_with_req, after_mine);
         }
     }
@@ -184,25 +177,21 @@ void start_mining_if_needed()
 {
     if (!mining_templates_initialized)
     {
-        LOG("templates not initialized yet\n")
         bool all_initialized = true;
         for (int i = 0; i < chain_nums; i++)
         {
             if (load_template(i) == NULL)
             {
                 all_initialized = false;
-                LOG("breaking out\n")
                 break;
             }
         }
         if (all_initialized)
         {
-            LOG("templates initialized\n")
+            LOG("All templates initialized\n")
             mining_templates_initialized = true;
             start_mining();
         }
-    } else {
-        LOG("templates were already initialized\n");
     }
 }
 
@@ -236,8 +225,6 @@ server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
         read_blob.blob = (uint8_t *)buf->base;
         read_blob.len = nread;
         server_message_t *message = decode_server_message(&read_blob);
-        // free(buf->base);
-        LOG("decoded server message\n");
         if (message)
         {
             // some bytes left
@@ -259,7 +246,6 @@ server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
     else
     {
         assert(read_blob.blob == read_buf);
-        LOG("doing assert\n")
         memcpy(read_buf + read_blob.len, buf->base, nread);
         read_blob.len += nread;
         return decode_server_message(&read_blob);
@@ -279,8 +265,7 @@ void try_to_reconnect(uv_timer_t *timer){
 // on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
-    // LOG("performing onread\n");
-    LOG("Received %d bytes from server\n", nread);
+    // LOG("Received %d bytes from server\n", nread);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -294,17 +279,13 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
     }
 
     server_message_t* server_msg = decode_buf(buf, nread);
-    // LOG("decoded buf\n");
 
     if (server_msg) {
-        // LOG((const char *) server_msg->job->header_blob.blob);
-
         switch (server_msg->kind)
         {
             case JOBS:
                 update_templates(server_msg->job);
                 start_mining_if_needed();
-                // LOG("started mininhg if needed\n");
                 break;
         }
         free_server_message_except_jobs(server_msg);
@@ -461,8 +442,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < worker_count; i++)
     {
-        uv_async_init(loop, &(mining_workers[0].async), mine_with_async);
-        uv_timer_init(loop, &(mining_workers[0].timer));
+        uv_async_init(loop, &(mining_workers[i].async), mine_with_async);
+        uv_timer_init(loop, &(mining_workers[i].timer));
         break;
     }
 

@@ -126,24 +126,15 @@ void store_worker__template(mining_worker_t *worker, mining_template_t *template
 void reset_worker(mining_worker_t *worker) {
     std::uniform_int_distribution<> distrib(0, UINT8_MAX);
     mining_template_t *template_ptr = worker->template_ptr.load();
-    LOG("loading template\n");
     job_t *job = template_ptr->job;
-    LOG("loading job %p\n", job);
 
     for (int i = 0; i < 24; i++) {
         hasher_buf(worker, true)[i] = distrib(worker->random_gen);
     }
 
-    LOG("test\n");
-    LOG("header blob %p\n", (job->header_blob.blob));
-    LOG("header len %d\n", job->header_blob.len);
-    LOG((const char *)job->header_blob.blob);
-
     memcpy(hasher_buf(worker, true) + 24, job->header_blob.blob, job->header_blob.len);
-    LOG("memcpy\n");
     // assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
     assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
-    LOG("asserted\n");
 
     // size_t target_zero_len = 32 - job->target.len;
 
