@@ -88,7 +88,7 @@ typedef struct job_t {
 
 void free_job(job_t *job) {
     free_blob(&job->header_blob);
-    free_blob(&job->txs_blob);
+    // free_blob(&job->txs_blob);
     // free_blob(&job->target);
     free(job);
 }

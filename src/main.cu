@@ -279,9 +279,8 @@ void try_to_reconnect(uv_timer_t *timer){
 // on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
-    // register_proxy();
-    LOG("performing onread\n");
-    LOG("nread %d\n", nread);
+    // LOG("performing onread\n");
+    LOG("Received %d bytes from server\n", nread);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -294,29 +293,22 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
         return;
     }
 
-    // LOG(buf->base);
-
     server_message_t* server_msg = decode_buf(buf, nread);
-    LOG("decoded buf\n");
+    // LOG("decoded buf\n");
 
     if (server_msg) {
-        LOG("received header from server\n");
-        LOG((const char *) server_msg->job->header_blob.blob);
+        // LOG((const char *) server_msg->job->header_blob.blob);
 
         switch (server_msg->kind)
         {
             case JOBS:
-                LOG("updating templates\n");
                 update_templates(server_msg->job);
-                LOG("updated templates\n");
-                // start_mining_if_needed();
+                start_mining_if_needed();
                 // LOG("started mininhg if needed\n");
                 break;
         }
-        LOG("finishing on_read\n");
         free_server_message_except_jobs(server_msg);
         server_msg = NULL;
-        LOG("done, successfully freed server message\n");
     }
     free(buf->base);
 }

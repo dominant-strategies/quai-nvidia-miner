@@ -128,14 +128,13 @@ void reset_worker(mining_worker_t *worker) {
     mining_template_t *template_ptr = worker->template_ptr.load();
     LOG("loading template\n");
     job_t *job = template_ptr->job;
-    mining_template_t* cp_template = (mining_template_t*)malloc(sizeof(mining_template_t));
-    cp_template->job = template_ptr->job;
-    LOG("loading job\n");
+    LOG("loading job %p\n", job);
 
     for (int i = 0; i < 24; i++) {
         hasher_buf(worker, true)[i] = distrib(worker->random_gen);
     }
 
+    LOG("test\n");
     LOG("header blob %p\n", (job->header_blob.blob));
     LOG("header len %d\n", job->header_blob.len);
     LOG((const char *)job->header_blob.blob);

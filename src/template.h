@@ -38,8 +38,11 @@ uint32_t sub_template__ref_count(mining_template_t *template_ptr, uint32_t value
 void free_template(mining_template_t *template_ptr)
 {
     uint32_t old_count = sub_template__ref_count(template_ptr, 1);
+    // uint32_t old_count = 1;
     if (old_count == 1) { // fetch_sub returns original value
+        LOG("freeing job. %p\n", template_ptr->job);
         free_job(template_ptr->job);
+        LOG("freeing template_ptr\n");
         free(template_ptr);
     }
 }
@@ -72,7 +75,10 @@ void update_templates(job_t *job)
     // TODO: optimize with atomic_exchange
     mining_template_t *last_template = load_template(chain_index);
     if (last_template) {
+        LOG("%p", last_template);
+        LOG("about to free\n");
         free_template(last_template);
+        LOG("freed\n");
     }
     store_template(chain_index, new_template);
 }
