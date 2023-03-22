@@ -13,9 +13,13 @@ void start_worker_mining(mining_worker_t *worker)
 {
     cudaSetDevice(worker->device_id);
 
+    LOG("cudasetdevice\n");
+
     reset_worker(worker);
+    LOG("reset_worker\n");
     TRY( cudaMemcpyAsync(hasher(worker, false), hasher(worker, true), hasher_len(worker), cudaMemcpyHostToDevice, worker->stream) );
 
+    LOG("memcpy\n");
 #ifdef SHOW_MINING_TIME
     cudaEvent_t startEvent, stopEvent;
     TRY( cudaEventCreate(&startEvent) );

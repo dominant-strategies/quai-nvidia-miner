@@ -126,23 +126,33 @@ void store_worker__template(mining_worker_t *worker, mining_template_t *template
 void reset_worker(mining_worker_t *worker) {
     std::uniform_int_distribution<> distrib(0, UINT8_MAX);
     mining_template_t *template_ptr = worker->template_ptr.load();
+    LOG("loading template\n");
     job_t *job = template_ptr->job;
+    mining_template_t* cp_template = (mining_template_t*)malloc(sizeof(mining_template_t));
+    cp_template->job = template_ptr->job;
+    LOG("loading job\n");
 
     for (int i = 0; i < 24; i++) {
         hasher_buf(worker, true)[i] = distrib(worker->random_gen);
     }
 
+    LOG("header blob %p\n", (job->header_blob.blob));
+    LOG("header len %d\n", job->header_blob.len);
+    LOG((const char *)job->header_blob.blob);
+
     memcpy(hasher_buf(worker, true) + 24, job->header_blob.blob, job->header_blob.len);
-    assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
+    LOG("memcpy\n");
+    // assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
     assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
+    LOG("asserted\n");
 
-    size_t target_zero_len = 32 - job->target.len;
+    // size_t target_zero_len = 32 - job->target.len;
 
-    memset(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), 0, target_zero_len);
-    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
-           job->target.len);
-    HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, from_group) = job->from_group;
-    HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, to_group) = job->to_group;
+    memset(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), 0, sizeof(job->target));
+    // memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
+    //        sizeof(job->target));
+    // HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, from_group) = job->from_group;
+    // HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, to_group) = job->to_group;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
 

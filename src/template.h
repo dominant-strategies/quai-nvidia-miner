@@ -61,15 +61,20 @@ void store_template(ssize_t chain_index, mining_template_t* new_template)
 
 void update_templates(job_t *job)
 {
-    // mining_template_t *new_template = (mining_template_t *)malloc(sizeof(mining_template_t));
-    // new_template->job = job;
+    mining_template_t *new_template = (mining_template_t *)malloc(sizeof(mining_template_t));
+    new_template->job = job;
     // store_template__ref_count(new_template, 1); // referred by mining_templates
 
+    ssize_t chain_index = 0;
+    task_counts[chain_index] += 1;
+    new_template->chain_task_count = task_counts[chain_index];
+
     // TODO: optimize with atomic_exchange
-    // mining_template_t *last_template = load_template(chain_index);
-    // if (last_template) {
-    //     free_template(last_template);
-    // }
+    mining_template_t *last_template = load_template(chain_index);
+    if (last_template) {
+        free_template(last_template);
+    }
+    store_template(chain_index, new_template);
 }
 
 bool expire_template_for_new_block(mining_template_t *template_ptr)

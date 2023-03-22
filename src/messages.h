@@ -83,13 +83,13 @@ typedef struct job_t {
     int to_group;
     blob_t header_blob;
     blob_t txs_blob;
-    blob_t target;
+    uint64_t target;
 } job_t;
 
 void free_job(job_t *job) {
     free_blob(&job->header_blob);
     free_blob(&job->txs_blob);
-    free_blob(&job->target);
+    // free_blob(&job->target);
     free(job);
 }
 
@@ -219,15 +219,15 @@ void extract_blob(uint8_t **bytes, blob_t *blob)
     // LOG("%s\n", bytes_to_hex(blob->blob, blob->len));
 }
 
-void extract_job(uint8_t **bytes, job_t *job)
-{
-    // job->from_group = extract_size(bytes);
-    // job->to_group = extract_size(bytes);
-    // LOG("group: %d, %d\n", job->from_group, job->to_group);
-    extract_blob(bytes, &job->header_blob);
-    // extract_blob(bytes, &job->txs_blob);
-    // extract_blob(bytes, &job->target);
-}
+// void extract_job(uint8_t **bytes, job_t *job)
+// {
+//     // job->from_group = extract_size(bytes);
+//     // job->to_group = extract_size(bytes);
+//     // LOG("group: %d, %d\n", job->from_group, job->to_group);
+//     extract_blob(bytes, &job->header_blob);
+//     // extract_blob(bytes, &job->txs_blob);
+//     // extract_blob(bytes, &job->target);
+// }
 
 void extract_submit_result(uint8_t **bytes, submit_result_t *result)
 {
@@ -243,30 +243,36 @@ server_message_t *decode_server_message(blob_t *blob)
     ssize_t len = blob->len;
 
     uint8_t *pos = bytes;
-    ssize_t message_size = extract_size(&pos);
-    assert(pos == bytes + 4);
+    // ssize_t message_size = extract_size(&pos);
+    // assert(pos == bytes + 4);
 
-    ssize_t message_byte_size = message_size + 4;
+    // ssize_t message_byte_size = message_size + 4;
     // if (len < message_byte_size) {
     //     LOG("Not enough bytes for decoding 2\n")
     //     return NULL; // not enough bytes for decoding
     // }
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
+    // new_job->target.blob = (uint64_t*) malloc(sizeof(uint64_t));
+    // new_job->target = memcpy()
+    LOG("about to copy target\n");
+    memcpy(&new_job->target, bytes, sizeof(new_job->target));
+    LOG("copied target\n");
     new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
     new_job->header_blob.len = len;
     memcpy(new_job->header_blob.blob, bytes, len);
+    LOG("copied header blob\n");
     
-    LOG((const char *)new_job->header_blob.blob)
+    // LOG((const char *)new_job->header_blob.blob)
 
-    LOG("Decoding server message\n");
+    LOG("Decoding server message. Len: %d\n", new_job->header_blob.len);
 
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
     // switch (extract_byte(&pos))
     // {
     // case 0:
         server_message->kind = JOBS;
-        server_message->job = (job_t *)malloc(sizeof(job_t));
+        // server_message->job = (job_t *)malloc(sizeof(job_t));
         server_message->job = new_job;
 
         LOG("extracted jobs\n");
@@ -285,13 +291,15 @@ server_message_t *decode_server_message(blob_t *blob)
     //     exit(1);
     // }
 
-    assert(pos == (bytes + message_byte_size));
-    if (message_byte_size < len) {
-        blob->len = len - message_byte_size;
-        memmove(blob->blob, pos, blob->len);
-    } else {
-        blob->len = 0;
-    }
+    // assert(pos == (bytes + message_byte_size));
+    // if (message_byte_size < len) {
+    //     blob->len = len - message_byte_size;
+    //     memmove(blob->blob, pos, blob->len);
+    // } else {
+    //     blob->len = 0;
+    // }
+
+    // free_blob(blob);
 
     return server_message;
 }

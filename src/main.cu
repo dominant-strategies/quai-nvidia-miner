@@ -98,16 +98,19 @@ void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
 
-    int32_t to_mine_index = next_chain_to_mine();
+    LOG("in the mining function\n");
+
+    int32_t to_mine_index = 0;
     if (to_mine_index == -1)
     {
         LOG("waiting for new tasks\n");
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
-        mining_counts[to_mine_index].fetch_add(mining_steps);
+        LOG("mining with index %d\n", to_mine_index);
+        // mining_counts[to_mine_index].fetch_add(mining_steps);
         setup_template(worker, load_template(to_mine_index));
-
+        LOG("setup template\n");
         start_worker_mining(worker);
 
         duration_t elapsed = Time::now() - start;
@@ -118,6 +121,7 @@ void mine(mining_worker_t *worker)
 void mine_with_req(uv_work_t *req)
 {
     mining_worker_t *worker = load_req_worker(req);
+    LOG("loaded req worker\n");
     mine(worker);
 }
 
@@ -148,7 +152,6 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
     }
 
     mining_template_t *template_ptr = load_worker__template(worker);
-    job_t *job = template_ptr->job;
     uint32_t chain_index = 0;
     mining_counts[chain_index].fetch_sub(mining_steps);
     mining_counts[chain_index].fetch_add(hasher_hash_count(worker, true));
@@ -164,11 +167,14 @@ void start_mining()
     assert(mining_templates_initialized == true);
 
     start_time = Time::now();
+    LOG("started timer\n");
 
-    for (uint32_t i = 0; i < worker_count.load(); i++)
+    for (uint32_t i = 0; i < 1; i++)
     {
+        LOG("loaded worker count\n");
         if (use_device[mining_workers[i].device_id])
         {
+            LOG("about to start work\n");
             uv_queue_work(loop, &req[i], mine_with_req, after_mine);
         }
     }
@@ -178,20 +184,25 @@ void start_mining_if_needed()
 {
     if (!mining_templates_initialized)
     {
+        LOG("templates not initialized yet\n")
         bool all_initialized = true;
         for (int i = 0; i < chain_nums; i++)
         {
             if (load_template(i) == NULL)
             {
                 all_initialized = false;
+                LOG("breaking out\n")
                 break;
             }
         }
         if (all_initialized)
         {
+            LOG("templates initialized\n")
             mining_templates_initialized = true;
             start_mining();
         }
+    } else {
+        LOG("templates were already initialized\n");
     }
 }
 
@@ -225,6 +236,8 @@ server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
         read_blob.blob = (uint8_t *)buf->base;
         read_blob.len = nread;
         server_message_t *message = decode_server_message(&read_blob);
+        // free(buf->base);
+        LOG("decoded server message\n");
         if (message)
         {
             // some bytes left
@@ -267,6 +280,8 @@ void try_to_reconnect(uv_timer_t *timer){
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
     // register_proxy();
+    LOG("performing onread\n");
+    LOG("nread %d\n", nread);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -278,66 +293,32 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
     {
         return;
     }
-    // LOG("performing onread\n");
 
     // LOG(buf->base);
 
     server_message_t* server_msg = decode_buf(buf, nread);
     LOG("decoded buf\n");
-    // char[] header = (char*) malloc(sizeof(header_msg_t));
-    // header->header_msg = buf->base;
-    // strcpy(header->header_msg, "testsync");
-
-    // LOG(buf->base);
-
-    // free(buf->base);
-    // // LOG(header->header_msg);
-    // LOG(header->header_msg);
 
     if (server_msg) {
         LOG("received header from server\n");
+        LOG((const char *) server_msg->job->header_blob.blob);
+
+        switch (server_msg->kind)
+        {
+            case JOBS:
+                LOG("updating templates\n");
+                update_templates(server_msg->job);
+                LOG("updated templates\n");
+                // start_mining_if_needed();
+                // LOG("started mininhg if needed\n");
+                break;
+        }
+        LOG("finishing on_read\n");
+        free_server_message_except_jobs(server_msg);
+        server_msg = NULL;
+        LOG("done, successfully freed server message\n");
     }
-
-    switch (server_msg->kind)
-    {
-        case JOBS:
-            LOG("updating templates\n");
-            // update_templates(server_msg->job);
-            // LOG("updated templates\n");
-            start_mining_if_needed();
-            break;
-
-    }
-
-    free_server_message(server_msg);
-
-    // header_msg_t* header = (header_msg_t*)(buf->base);
-
-    // if (header) {
-    //     LOG("received header from server");
-    // }
-
-    // if (message)
-    // {
-    //     // LOG("test")
-    //     switch (message->kind)
-    //     {
-    //     case JOBS:
-    //         for (int i = 0; i < message->job->len; i++)
-    //         {
-    //             update_templates(message->job->jobs_list[i]);
-    //         }
-    //         start_mining_if_needed();
-    //         break;
-
-    //     case SUBMIT_RESULT:
-    //         LOG("submitted: %d -> %d: %d \n", message->submit_result->from_group, message->submit_result->to_group, message->submit_result->status);
-    //         break;
-    //     }
-    //     free_server_message_except_jobs(message);
-    // }
-
-    // uv_close((uv_handle_t *) server, free_close_cb);
+    free(buf->base);
 }
 
 void on_connect(uv_connect_t *req, int status)
