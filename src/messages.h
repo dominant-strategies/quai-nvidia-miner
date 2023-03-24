@@ -247,16 +247,16 @@ server_message_t *decode_server_message(blob_t *blob)
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
     // new_job->target.blob = (uint64_t*) malloc(sizeof(uint64_t));
     // new_job->target = memcpy()
-    memcpy(&new_job->target, bytes, 8);
-    new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
-    new_job->header_blob.len = len;
-    memcpy(new_job->header_blob.blob, bytes, len);
-
+    memcpy(&new_job->target, bytes, sizeof(new_job->target));
     new_job->target = be64toh(new_job->target);
 
-    // LOG(new_job->target);
+    new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
+    new_job->header_blob.len = len;
+    memcpy(new_job->header_blob.blob, bytes + sizeof(new_job->target), 32);
+
     
-    // printf("%llu\n", new_job->target);
+    // printf("%02x\n", new_job->target);
+    // printf("%llu\n", new_job->header_blob.blob[31]);
 
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
         server_message->kind = JOBS;
