@@ -164,7 +164,7 @@ void start_mining()
     start_time = Time::now();
     LOG("started timer\n");
 
-    for (uint32_t i = 0; i < 1; i++)
+    for (uint32_t i = 0; i < worker_count.load(); i++)
     {
         if (use_device[mining_workers[i].device_id])
         {
@@ -218,11 +218,12 @@ void log_hashrate(uv_timer_t *timer)
 
 uint8_t read_buf[2048 * 1024 * chain_nums];
 blob_t read_blob = {read_buf, 0};
-server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
+server_message_t *decode_buf_orig(const uv_buf_t *buf, ssize_t nread)
 {
     if (read_blob.len == 0)
     {
-        read_blob.blob = (uint8_t *)buf->base;
+        LOG("read blob == 0\n");
+        read_blob.blob = (uint8_t*) buf->base;
         read_blob.len = nread;
         server_message_t *message = decode_server_message(&read_blob);
         if (message)
@@ -245,11 +246,24 @@ server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
     }
     else
     {
+        LOG("read blob != 0\n");
         assert(read_blob.blob == read_buf);
         memcpy(read_buf + read_blob.len, buf->base, nread);
         read_blob.len += nread;
         return decode_server_message(&read_blob);
     }
+}
+
+server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread) {
+    // expire_old_template();
+    // free_template(load_template(0));
+    blob_t read_blob = * (blob_t*)malloc(sizeof(blob_t));
+    read_blob.blob = (uint8_t*)malloc(nread * sizeof(uint8_t));
+    read_blob.len = nread;
+
+    memcpy(read_blob.blob, buf->base, nread);
+
+    return decode_server_message(&read_blob);
 }
 
 void connect_to_broker();
@@ -265,7 +279,7 @@ void try_to_reconnect(uv_timer_t *timer){
 // on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
-    // LOG("Received %d bytes from server\n", nread);
+    LOG("Received %d bytes from server\n", nread);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -275,6 +289,7 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 
     if (nread == 0)
     {
+        LOG("No data received\n");
         return;
     }
 
@@ -289,7 +304,6 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
                 break;
         }
         free_server_message_except_jobs(server_msg);
-        server_msg = NULL;
     }
     free(buf->base);
 }
@@ -377,6 +391,7 @@ int main(int argc, char **argv)
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
     LOG("GPU count: %d\n", gpu_count);
+    gpu_count = 1;
     for (int i = 0; i < gpu_count; i++)
     {
         cudaDeviceProp prop;
@@ -434,6 +449,7 @@ int main(int argc, char **argv)
     #endif
 
     mining_workers_init(gpu_count);
+    LOG("worker count: %d\n", gpu_count);
     setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
 
     loop = uv_default_loop();
@@ -444,7 +460,7 @@ int main(int argc, char **argv)
     {
         uv_async_init(loop, &(mining_workers[i].async), mine_with_async);
         uv_timer_init(loop, &(mining_workers[i].timer));
-        break;
+        // break;
     }
 
     uv_timer_t log_timer;

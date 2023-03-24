@@ -1,6 +1,9 @@
 #ifndef ALEPHIUM_MESSAGE_H
 #define ALEPHIUM_MESSAGE_H
 
+#define __STDC_FORMAT_MACROS
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -227,8 +230,11 @@ server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *bytes = blob->blob;
     ssize_t len = blob->len;
+    for (int i = 0; i < len; i++) {
+        LOG("Byte value: 0x%u\n", bytes[i]);
+    }
 
-    uint8_t *pos = bytes;
+    // uint8_t *pos = bytes;
     // ssize_t message_size = extract_size(&pos);
     // assert(pos == bytes + 4);
 
@@ -241,42 +247,21 @@ server_message_t *decode_server_message(blob_t *blob)
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
     // new_job->target.blob = (uint64_t*) malloc(sizeof(uint64_t));
     // new_job->target = memcpy()
-    memcpy(&new_job->target, bytes, sizeof(new_job->target));
+    memcpy(&new_job->target, bytes, 8);
     new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
     new_job->header_blob.len = len;
     memcpy(new_job->header_blob.blob, bytes, len);
+
+    new_job->target = be64toh(new_job->target);
+
+    // LOG(new_job->target);
     
+    // printf("%llu\n", new_job->target);
+
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
-    // switch (extract_byte(&pos))
-    // {
-    // case 0:
         server_message->kind = JOBS;
         // server_message->job = (job_t *)malloc(sizeof(job_t));
         server_message->job = new_job;
-
-        // LOG("%p, %p, %p\n", bytes, pos, bytes + len);
-        // break;
-
-    // case 1:
-    //     server_message->kind = SUBMIT_RESULT;
-    //     server_message->submit_result = (submit_result_t *)malloc(sizeof(submit_result_t));
-    //     extract_submit_result(&pos, server_message->submit_result);
-    //     break;
-
-    // default:
-    //     LOGERR("Invalid server message kind\n");
-    //     exit(1);
-    // }
-
-    // assert(pos == (bytes + message_byte_size));
-    // if (message_byte_size < len) {
-    //     blob->len = len - message_byte_size;
-    //     memmove(blob->blob, pos, blob->len);
-    // } else {
-    //     blob->len = 0;
-    // }
-
-    // free_blob(blob);
 
     return server_message;
 }

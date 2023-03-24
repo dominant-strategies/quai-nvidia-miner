@@ -60,11 +60,21 @@ void store_template(ssize_t chain_index, mining_template_t* new_template)
     atomic_store(&(mining_templates[chain_index]), new_template);
 }
 
+// void expire_old_template()
+// {
+//     mining_template_t *last_template = load_template(0);
+//     LOG("loaded last template\n");
+//     if (last_template) {
+//         // store_template(0, NULL);
+//         free_template(last_template);
+//     }
+// }
+
 void update_templates(job_t *job)
 {
     mining_template_t *new_template = (mining_template_t *)malloc(sizeof(mining_template_t));
     new_template->job = job;
-    // store_template__ref_count(new_template, 1); // referred by mining_templates
+    store_template__ref_count(new_template, 1); // referred by mining_templates
 
     ssize_t chain_index = 0;
     task_counts[chain_index] += 1;
