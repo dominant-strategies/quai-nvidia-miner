@@ -82,17 +82,15 @@ typedef struct header_msg_t {
 
 // job struct
 typedef struct job_t {
-    int from_group;
-    int to_group;
     blob_t header_blob;
     blob_t txs_blob;
-    uint64_t target;
+    blob_t target;
 } job_t;
 
 void free_job(job_t *job) {
     free_blob(&job->header_blob);
     // free_blob(&job->txs_blob);
-    // free_blob(&job->target);
+    free_blob(&job->target);
     free(job);
 }
 
@@ -230,37 +228,25 @@ server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *bytes = blob->blob;
     ssize_t len = blob->len;
-    for (int i = 0; i < len; i++) {
-        LOG("Byte value: 0x%u\n", bytes[i]);
-    }
-
-    // uint8_t *pos = bytes;
-    // ssize_t message_size = extract_size(&pos);
-    // assert(pos == bytes + 4);
-
-    // ssize_t message_byte_size = message_size + 4;
-    // if (len < message_byte_size) {
-    //     LOG("Not enough bytes for decoding 2\n")
-    //     return NULL; // not enough bytes for decoding
+    // for (int i = 0; i < len; i++) {
+    //     LOG("Byte value: 0x%u\n", bytes[i]);
     // }
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
-    // new_job->target.blob = (uint64_t*) malloc(sizeof(uint64_t));
-    // new_job->target = memcpy()
-    memcpy(&new_job->target, bytes, sizeof(new_job->target));
-    new_job->target = be64toh(new_job->target);
 
-    new_job->header_blob.blob = (uint8_t*) malloc(len * sizeof(uint8_t));
-    new_job->header_blob.len = len;
-    memcpy(new_job->header_blob.blob, bytes + sizeof(new_job->target), 32);
+    new_job->target.blob = (uint8_t*) malloc(8 * sizeof(uint8_t));
+    new_job->target.len = 8;
+    memcpy(new_job->target.blob, bytes + sizeof(new_job->target), 8);
 
-    
+    new_job->header_blob.blob = (uint8_t*) malloc(32 * sizeof(uint8_t));
+    new_job->header_blob.len = 32;
+    memcpy(new_job->header_blob.blob, bytes + 8, 32);
+
     // printf("%02x\n", new_job->target);
     // printf("%llu\n", new_job->header_blob.blob[31]);
 
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
         server_message->kind = JOBS;
-        // server_message->job = (job_t *)malloc(sizeof(job_t));
         server_message->job = new_job;
 
     return server_message;

@@ -91,11 +91,10 @@ void update_templates(job_t *job)
 bool expire_template_for_new_block(mining_template_t *template_ptr)
 {
     job_t *job = template_ptr->job;
-    ssize_t chain_index = job->from_group * group_nums + job->to_group;
 
-    mining_template_t *latest_template = load_template(chain_index);
+    mining_template_t *latest_template = load_template(0);
     if (latest_template) {
-        store_template(chain_index, NULL);
+        store_template(0, NULL);
         free_template(latest_template);
         return true;
     } else {

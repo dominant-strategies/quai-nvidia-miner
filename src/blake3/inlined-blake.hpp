@@ -238,8 +238,6 @@ typedef struct
     uint8_t hash[32]; // 64 bytes needed as hash will used as block words as well
 
     uint8_t target[32];
-    uint32_t from_group;
-    uint32_t to_group;
 
     uint32_t hash_count;
     int found_good_hash;
@@ -322,21 +320,21 @@ typedef struct
     else                                                    \
         ((void)0)
 
-#define CHECK_INDEX                                                                         \
-    if (1)                                                                                  \
-    {                                                                                       \
-        uint32_t big_index = (H7 & 0x0F000000) >> 24;                                       \
-        if ((big_index / group_nums == from_group) && (big_index % group_nums == to_group)) \
-        {                                                                                   \
-            UPDATE_NONCE;                                                                   \
-        }                                                                                   \
-        else                                                                                \
-        {                                                                                   \
-            goto cnt;                                                                       \
-        }                                                                                   \
-    }                                                                                       \
-    else                                                                                    \
-        ((void)0)
+// #define CHECK_INDEX                                                                         \
+//     if (1)                                                                                  \
+//     {                                                                                       \
+//         uint32_t big_index = (H7 & 0x0F000000) >> 24;                                       \
+//         if ((big_index / group_nums == from_group) && (big_index % group_nums == to_group)) \
+//         {                                                                                   \
+//             UPDATE_NONCE;                                                                   \
+//         }                                                                                   \
+//         else                                                                                \
+//         {                                                                                   \
+//             goto cnt;                                                                       \
+//         }                                                                                   \
+//     }                                                                                       \
+//     else                                                                                    \
+//         ((void)0)
 
 #define MASK0(n) (n & 0x000000FF)
 #define MASK1(n) (n & 0x0000FF00)
@@ -353,7 +351,7 @@ typedef struct
         }                        \
         else if (m0 < m1)        \
         {                        \
-            CHECK_INDEX;         \
+            UPDATE_NONCE;           \
         }                        \
     }                            \
     else                         \
@@ -385,7 +383,6 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     uint32_t *input = (uint32_t *)hasher.buf;
     uint32_t *target = (uint32_t *)hasher.target;
     uint32_t target0 = target[0], target1 = target[1], target2 = target[2]; //, target3 = target[3], target4 = target[4], target5 = target[5], target6 = target[6], target7 = target[7];
-    uint32_t from_group = hasher.from_group, to_group = hasher.to_group;
     uint32_t hash_count = 0;
 
     uint32_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF; // message block
@@ -402,6 +399,9 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     {
         hash_count += 1;
         // printf("count: %u\n", hash_count);
+        // printf("nonce: %u\n", *short_nonce);
+        // printf("nonce: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->buf);
+        // printf("hash: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->hash);
         *short_nonce += stride;
         DOUBLE_HASH;
         CHECK_POW;
