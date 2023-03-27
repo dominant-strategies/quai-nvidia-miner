@@ -137,8 +137,10 @@ void reset_worker(mining_worker_t *worker) {
     assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
     // size_t target_zero_len = 32 - job->target.len;
+    size_t target_zero_len = 32 - job->target.len;
 
-    memset(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), 0, sizeof(job->target));
+    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + 32 - job->target.len, job->target.blob,
+           job->target.len);
     // memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
     //        sizeof(job->target));
     // HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, from_group) = job->from_group;
