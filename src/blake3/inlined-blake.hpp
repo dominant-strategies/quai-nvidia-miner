@@ -237,7 +237,7 @@ typedef struct
 
     uint8_t hash[32]; // 64 bytes needed as hash will used as block words as well
 
-    uint8_t target[32];
+    uint8_t target[8];
 
     uint32_t hash_count;
     int found_good_hash;
@@ -398,7 +398,7 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     while (hash_count < mining_steps)
     {
         hash_count += 1;
-        // printf("count: %u\n", hash_count);
+        // printf("count: %u. ", hash_count);
         // printf("nonce: %u\n", *short_nonce);
         // printf("nonce: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->buf);
         // printf("hash: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->hash);

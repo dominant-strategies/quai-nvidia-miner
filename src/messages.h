@@ -226,7 +226,8 @@ void extract_submit_result(uint8_t **bytes, submit_result_t *result)
 // important: processing message
 server_message_t *decode_server_message(blob_t *blob)
 {
-    uint8_t *bytes = blob->blob;
+    uint8_t *target = blob->blob;
+    uint8_t *header = blob->blob + 8;
     ssize_t len = blob->len;
     // for (int i = 0; i < len; i++) {
     //     LOG("Byte value: 0x%u\n", bytes[i]);
@@ -234,13 +235,13 @@ server_message_t *decode_server_message(blob_t *blob)
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
 
-    new_job->target.blob = (uint8_t*) malloc(8 * sizeof(uint8_t));
     new_job->target.len = 8;
-    memcpy(new_job->target.blob, bytes + sizeof(new_job->target), 8);
+    new_job->target.blob = (uint8_t*) malloc(new_job->target.len * sizeof(uint8_t));
+    memcpy(new_job->target.blob, target, new_job->target.len);
 
-    new_job->header_blob.blob = (uint8_t*) malloc(32 * sizeof(uint8_t));
     new_job->header_blob.len = 32;
-    memcpy(new_job->header_blob.blob, bytes + 8, 32);
+    new_job->header_blob.blob = (uint8_t*) malloc(new_job->header_blob.len * sizeof(uint8_t));
+    memcpy(new_job->header_blob.blob, header, new_job->header_blob.len);
 
     // printf("%02x\n", new_job->target);
     // printf("%llu\n", new_job->header_blob.blob[31]);
@@ -248,7 +249,7 @@ server_message_t *decode_server_message(blob_t *blob)
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
         server_message->kind = JOBS;
         server_message->job = new_job;
-
+    
     return server_message;
 }
 

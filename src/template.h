@@ -100,6 +100,16 @@ bool expire_template_for_new_block(mining_template_t *template_ptr)
     } else {
         return false;
     }
+
+    mining_templates_initialized = false;
+}
+
+bool ready_to_mine() {
+    if (load_template(0)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 int32_t next_chain_to_mine()

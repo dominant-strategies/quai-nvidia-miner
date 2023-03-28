@@ -68,7 +68,7 @@ void submit_new_block(mining_worker_t *worker)
 
     ssize_t buf_size = write_new_block(worker, write_buffer);
     uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
-    print_hex("new solution", (uint8_t *) hasher_buf(worker, true), 32);
+    print_hex("new solution", (uint8_t *) hasher_hash(worker, true), 32);
 
     uv_write_t *write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
     uint32_t buf_count = 1;
@@ -97,23 +97,23 @@ static void register_proxy(uv_stream_t* tcp)
 void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
+    // LOG("got new task\n");
 
     int32_t to_mine_index = 0;
-    if (to_mine_index == -1)
+    while (!ready_to_mine())
     {
-        LOG("waiting for new tasks\n");
+        // LOG("waiting for new tasks\n");
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
-    } else {
-        // mining_counts[to_mine_index].fetch_add(mining_steps);
-        mining_counts[to_mine_index].fetch_add(mining_steps);
-        setup_template(worker, load_template(to_mine_index));
-        LOG("starting to mine\n");
+    }
+        mining_counts[0].fetch_add(mining_steps);
+        setup_template(worker, load_template(0));
+        // LOG("starting to mine\n");
         start_worker_mining(worker);
 
         // duration_t elapsed = Time::now() - start;
         // LOG("=== mining time: %fs\n", elapsed.count());
-    }
+    
 }
 
 void mine_with_req(uv_work_t *req)
@@ -147,7 +147,7 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
     {
         LOG("found good hash\n");
         store_worker_found_good_hash(worker, true);
-        // submit_new_block(worker);
+        submit_new_block(worker);
     }
 
     // LOG("starting to free templates\n");

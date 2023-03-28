@@ -139,8 +139,10 @@ void reset_worker(mining_worker_t *worker) {
     // size_t target_zero_len = 32 - job->target.len;
     size_t target_zero_len = 0;
 
-    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
+    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), job->target.blob,
            job->target.len);
+
+    printf("Resetting worker\n");
     // memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
     //        sizeof(job->target));
     // HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, from_group) = job->from_group;
