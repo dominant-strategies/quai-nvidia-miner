@@ -137,9 +137,9 @@ void reset_worker(mining_worker_t *worker) {
     assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
     // size_t target_zero_len = 32 - job->target.len;
-    size_t target_zero_len = 32 - job->target.len;
+    size_t target_zero_len = 0;
 
-    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + 32 - job->target.len, job->target.blob,
+    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
            job->target.len);
     // memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
     //        sizeof(job->target));
@@ -148,7 +148,7 @@ void reset_worker(mining_worker_t *worker) {
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
 
-    store_worker_found_good_hash(worker, true);
+    store_worker_found_good_hash(worker, false);
 }
 
 typedef struct mining_req {
@@ -185,7 +185,8 @@ ssize_t write_new_block(mining_worker_t *worker, uint8_t *write_buf) {
                                              : worker->host_hasher.ref_hasher->buf;
     uint8_t *write_pos = write_buf;
 
-    ssize_t block_size = 24 + job->header_blob.len + job->txs_blob.len;
+    // ssize_t block_size = 24 + job->header_blob.len + job->txs_blob.len;
+    ssize_t block_size = 24 + job->header_blob.len;
     ssize_t message_size = 1 + 4 + block_size;
 
     write_size(&write_pos, message_size);
@@ -193,7 +194,7 @@ ssize_t write_new_block(mining_worker_t *worker, uint8_t *write_buf) {
     write_size(&write_pos, block_size);
     write_bytes(&write_pos, nonce, 24);
     write_blob(&write_pos, &job->header_blob);
-    write_blob(&write_pos, &job->txs_blob);
+    // write_blob(&write_pos, &job->txs_blob);
 
     return message_size + 4;
 }

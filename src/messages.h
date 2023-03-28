@@ -83,7 +83,7 @@ typedef struct header_msg_t {
 // job struct
 typedef struct job_t {
     blob_t header_blob;
-    blob_t txs_blob;
+    // blob_t txs_blob;
     blob_t target;
 } job_t;
 

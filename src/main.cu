@@ -106,7 +106,9 @@ void mine(mining_worker_t *worker)
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
         // mining_counts[to_mine_index].fetch_add(mining_steps);
+        mining_counts[to_mine_index].fetch_add(mining_steps);
         setup_template(worker, load_template(to_mine_index));
+        LOG("starting to mine\n");
         start_worker_mining(worker);
 
         // duration_t elapsed = Time::now() - start;
@@ -140,11 +142,15 @@ void after_mine(uv_work_t *req, int status)
 void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
 {
     mining_worker_t *worker = (mining_worker_t *)data;
+    // LOG("starting worker callback\n");
     if (hasher_found_good_hash(worker, true))
     {
+        LOG("found good hash\n");
         store_worker_found_good_hash(worker, true);
-        submit_new_block(worker);
+        // submit_new_block(worker);
     }
+
+    // LOG("starting to free templates\n");
 
     mining_template_t *template_ptr = load_worker__template(worker);
     uint32_t chain_index = 0;
