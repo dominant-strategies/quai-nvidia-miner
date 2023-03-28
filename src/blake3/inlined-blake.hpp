@@ -292,7 +292,7 @@ typedef struct
     else                                        \
         ((void)0)
 
-#define UPDATE_NONCE                                        \
+#define STORE_NONCE                                         \
     if (1)                                                  \
     {                                                       \
         if (atomicCAS(&reinterpret_cast<blake3_hasher*>(global_hasher)->found_good_hash, 0, 1) == 0) \
@@ -351,7 +351,7 @@ typedef struct
         }                        \
         else if (m0 < m1)        \
         {                        \
-            UPDATE_NONCE;           \
+            STORE_NONCE;           \
         }                        \
     }                            \
     else                         \

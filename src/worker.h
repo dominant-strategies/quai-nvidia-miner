@@ -148,7 +148,7 @@ void reset_worker(mining_worker_t *worker) {
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
 
-    store_worker_found_good_hash(worker, false);
+    store_worker_found_good_hash(worker, true);
 }
 
 typedef struct mining_req {
