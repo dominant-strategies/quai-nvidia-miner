@@ -135,7 +135,7 @@ void reset_worker(mining_worker_t *worker) {
     }
 
     memcpy(hasher_buf(worker, true) + NONCE_LEN, job->header_blob.blob, job->header_blob.len);
-    // assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
+    assert((NONCE_LEN + job->header_blob.len) == BLAKE3_BUF_LEN);
     assert((NONCE_LEN + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
     // size_t target_zero_len = 32 - job->target.len;

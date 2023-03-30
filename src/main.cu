@@ -89,7 +89,7 @@ void submit_new_block(mining_worker_t *worker)
 
     uv_buf_t buf = uv_buf_init((char *)write_buffer, strlen(method_str) + strlen(ascii_string) + strlen(method_str2));
     print_hex("new solution: hash", (uint8_t *) hasher_hash(worker, true), 32);
-    print_hex("new solution: nonce", (uint8_t *) hasher_buf(worker, true), 24);
+    print_hex("new solution: nonce", (uint8_t *) hasher_buf(worker, true), NONCE_LEN);
 
     printf((const char *)write_buffer);
 
