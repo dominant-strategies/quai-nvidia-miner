@@ -42,6 +42,7 @@ typedef struct mining_worker_t {
 } mining_worker_t;
 
 
+#define NONCE_LEN 8
 #define MINER_IMPL(worker) ((worker)->is_inline_miner ? inline_blake::blake3_hasher_mine:ref_blake::blake3_hasher_mine)
 #define HASHER(worker, host) ((host) ? (worker)->host_hasher:(worker)->device_hasher)
 #define HASHER_ELEM(hasher, is_inline, elem) ((is_inline) ? (hasher).inline_hasher->elem:(hasher).ref_hasher->elem)
@@ -128,13 +129,14 @@ void reset_worker(mining_worker_t *worker) {
     mining_template_t *template_ptr = worker->template_ptr.load();
     job_t *job = template_ptr->job;
 
-    for (int i = 0; i < 24; i++) {
-        hasher_buf(worker, true)[i] = distrib(worker->random_gen);
+    for (int i = 0; i < NONCE_LEN; i++) {                  // Initializes the first nonce to random data
+        // hasher_buf(worker, true)[i] = distrib(worker->random_gen);
+        hasher_buf(worker, true)[i] = 0;
     }
 
-    memcpy(hasher_buf(worker, true) + 24, job->header_blob.blob, job->header_blob.len);
+    memcpy(hasher_buf(worker, true) + NONCE_LEN, job->header_blob.blob, job->header_blob.len);
     // assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
-    assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
+    assert((NONCE_LEN + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
     // size_t target_zero_len = 32 - job->target.len;
     size_t target_zero_len = 0;
@@ -149,6 +151,8 @@ void reset_worker(mining_worker_t *worker) {
     // HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, to_group) = job->to_group;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
+
+    print_hex("sealhash: ", (uint8_t *) hasher_buf(worker, true) + NONCE_LEN, 32);
 
     store_worker_found_good_hash(worker, false);
 }
@@ -188,17 +192,19 @@ ssize_t write_new_block(mining_worker_t *worker, uint8_t *write_buf) {
     uint8_t *write_pos = write_buf;
 
     // ssize_t block_size = 24 + job->header_blob.len + job->txs_blob.len;
-    ssize_t block_size = 24 + job->header_blob.len;
-    ssize_t message_size = 1 + 4 + block_size;
+    ssize_t block_size = job->target.len + job->header_blob.len;
+    ssize_t message_size = job->target.len + 1;
 
-    write_size(&write_pos, message_size);
-    write_byte(&write_pos, 0); // message type
-    write_size(&write_pos, block_size);
-    write_bytes(&write_pos, nonce, 24);
-    write_blob(&write_pos, &job->header_blob);
+    // write_size(&write_pos, message_size);
+    // write_byte(&write_pos, 0); // message type
+    // write_size(&write_pos, block_size);
+    write_bytes(&write_pos, nonce, NONCE_LEN);
+    // write_blob(&write_pos, &job->header_blob);
+    // write_bytes(&write_pos, '\n', 1);
+    // memset(write_pos, '\0', 1);
     // write_blob(&write_pos, &job->txs_blob);
 
-    return message_size + 4;
+    return message_size;
 }
 
 void setup_template(mining_worker_t *worker, mining_template_t *template_ptr) {

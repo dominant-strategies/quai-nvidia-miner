@@ -13,6 +13,8 @@
 
 #include "log.h"
 
+#define NONCE_LEN 8
+
 typedef struct blob_t {
     uint8_t *blob;
     ssize_t len;
@@ -227,7 +229,7 @@ void extract_submit_result(uint8_t **bytes, submit_result_t *result)
 server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *target = blob->blob;
-    uint8_t *header = blob->blob + 8;
+    uint8_t *header = blob->blob + NONCE_LEN;
     ssize_t len = blob->len;
     // for (int i = 0; i < len; i++) {
     //     LOG("Byte value: 0x%u\n", bytes[i]);
@@ -235,7 +237,7 @@ server_message_t *decode_server_message(blob_t *blob)
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
 
-    new_job->target.len = 8;
+    new_job->target.len = NONCE_LEN;
     new_job->target.blob = (uint8_t*) malloc(new_job->target.len * sizeof(uint8_t));
     memcpy(new_job->target.blob, target, new_job->target.len);
 
