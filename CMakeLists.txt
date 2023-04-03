@@ -41,7 +41,7 @@ conan_cmake_run(REQUIRES libuv/1.42.0
 # Target definitions
 add_executable(gpu-miner src/main.cu)
 set_property(TARGET gpu-miner PROPERTY CXX_STANDARD 11)
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --ptxas-options=-v")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --ptxas-options=-v --debug")
 target_compile_definitions(gpu-miner PUBLIC MINER_VERSION="${miner-version}")
 target_link_libraries(gpu-miner PRIVATE ${CONAN_LIBS})
 #Copy binary to bin directory

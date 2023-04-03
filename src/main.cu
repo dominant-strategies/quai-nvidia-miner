@@ -35,7 +35,7 @@ std::atomic<uint64_t> total_mining_count;
 std::atomic<uint64_t> device_mining_count[max_gpu_num];
 bool use_device[max_gpu_num];
 
-int port = 10973;
+int port = 8008;
 char broker_ip[16];
 uv_timer_t reconnect_timer;
 uv_tcp_t *uv_socket;
@@ -66,7 +66,9 @@ void submit_new_block(mining_worker_t *worker)
 
     ssize_t buf_size = write_new_block(worker, write_buffer);
     uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
-    print_hex("new solution", (uint8_t *) hasher_buf(worker, true), 32);
+    print_hex("buf_contents", (uint8_t *) buf.base, buf.len);
+    print_hex("new solution", (uint8_t *) hasher_buf(worker, true), 24);
+    print_hex("hash", (uint8_t *) hasher_hash(worker, true), 32);
 
     uv_write_t *write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
     uint32_t buf_count = 1;
@@ -245,8 +247,23 @@ void try_to_reconnect(uv_timer_t *timer){
     uv_timer_stop(timer);
 }
 
+static void register_proxy(uv_stream_t* tcp)
+{
+    char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+
+    uv_buf_t buf = uv_buf_init(method_str, strlen(method_str));
+
+    uv_write_t* write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
+    write_req->data = method_str;
+
+    uv_write(write_req, tcp, &buf, 1, on_write_end);
+    
+    LOG("Proxy registered\n");
+}
+
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
+    LOG("reading data");
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -294,6 +311,7 @@ void on_connect(uv_connect_t *req, int status)
     LOG("the server is connected %d %p\n", status, req);
 
     tcp = req->handle;
+    register_proxy((uv_stream_t*)tcp);
     uv_read_start(req->handle, alloc_buffer, on_read);
 }
 
@@ -357,6 +375,7 @@ int main(int argc, char **argv)
 
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
+    gpu_count = 1;
     LOG("GPU count: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
     {
@@ -366,7 +385,7 @@ int main(int argc, char **argv)
         use_device[i] = true;
     }
 
-    strcpy(broker_ip, "127.0.0.1");
+    strcpy(broker_ip, "192.168.4.9");
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)

@@ -128,6 +128,19 @@ void reset_worker(mining_worker_t *worker) {
     mining_template_t *template_ptr = worker->template_ptr.load();
     job_t *job = template_ptr->job;
 
+    // blob_t* header = malloc(sizeof(blob_t));
+    // memcpy
+    // blob_t* txs = malloc(sizeof(blob_t));
+    // blob_t* target = malloc(sizeof(blob_t));
+
+    // job_t job = {
+    //     1,
+    //     1,
+    //     header,
+    //     txs,
+    //     target
+    // }
+
     for (int i = 0; i < 24; i++) {
         hasher_buf(worker, true)[i] = distrib(worker->random_gen);
     }
@@ -145,6 +158,13 @@ void reset_worker(mining_worker_t *worker) {
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, to_group) = job->to_group;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
+
+    // printf("Original hash: %02X\n", hasher_buf(worker, true) + 24, 32);
+    printf("Printing hash:\n");
+    for (int i = 0; i < 302; i++) {
+        printf("%02X", hasher_buf(worker, true)[24 + i]);
+    }
+    printf("\n");
 
     store_worker_found_good_hash(worker, false);
 }
