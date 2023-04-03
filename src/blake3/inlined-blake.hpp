@@ -255,10 +255,7 @@ typedef struct
         H5 = IV_5;                              \
         H6 = IV_6;                              \
         H7 = IV_7;                              \
-        HASH_BLOCK(0, 64, CHUNK_START);         \
-        HASH_BLOCK(1, 64, 0);                   \
-        HASH_BLOCK(2, 64, 0);                   \
-        HASH_BLOCK(3, 8, CHUNK_END | ROOT);                   \
+        HASH_BLOCK(0, 40, CHUNK_START | CHUNK_END | ROOT);         \
         M0 = H0;                                \
         M1 = H1;                                \
         M2 = H2;                                \
