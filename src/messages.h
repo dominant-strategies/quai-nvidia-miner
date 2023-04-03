@@ -14,7 +14,7 @@
 #include "log.h"
 
 #define NONCE_LEN 24
-#define HEADER_LEN 302
+#define HEADER_LEN 200-24
 
 typedef struct blob_t {
     uint8_t *blob;

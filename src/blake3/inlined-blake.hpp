@@ -230,7 +230,6 @@ INLINE __device__ uint32_t ROTR32(uint32_t w, uint32_t c)
     else                           \
         ((void)0)
 
-// seems interesting
 typedef struct
 {
     uint8_t buf[BLAKE3_BUF_CAP];
@@ -238,6 +237,8 @@ typedef struct
     uint8_t hash[32]; // 64 bytes needed as hash will used as block words as well
 
     uint8_t target[32];
+    uint32_t from_group;
+    uint32_t to_group;
 
     uint32_t hash_count;
     int found_good_hash;
@@ -257,10 +258,7 @@ typedef struct
         HASH_BLOCK(0, 64, CHUNK_START);         \
         HASH_BLOCK(1, 64, 0);                   \
         HASH_BLOCK(2, 64, 0);                   \
-        HASH_BLOCK(3, 64, 0);                   \
-        HASH_BLOCK(4, 64, 0);                   \
-        HASH_BLOCK(5, 6, CHUNK_END | ROOT);     \
-                                                \
+        HASH_BLOCK(3, 8, CHUNK_END | ROOT);                   \
         M0 = H0;                                \
         M1 = H1;                                \
         M2 = H2;                                \
@@ -292,7 +290,7 @@ typedef struct
     else                                        \
         ((void)0)
 
-#define STORE_NONCE                                         \
+#define UPDATE_NONCE                                        \
     if (1)                                                  \
     {                                                       \
         if (atomicCAS(&reinterpret_cast<blake3_hasher*>(global_hasher)->found_good_hash, 0, 1) == 0) \
@@ -320,21 +318,21 @@ typedef struct
     else                                                    \
         ((void)0)
 
-// #define CHECK_INDEX                                                                         \
-//     if (1)                                                                                  \
-//     {                                                                                       \
-//         uint32_t big_index = (H7 & 0x0F000000) >> 24;                                       \
-//         if ((big_index / group_nums == from_group) && (big_index % group_nums == to_group)) \
-//         {                                                                                   \
-//             UPDATE_NONCE;                                                                   \
-//         }                                                                                   \
-//         else                                                                                \
-//         {                                                                                   \
-//             goto cnt;                                                                       \
-//         }                                                                                   \
-//     }                                                                                       \
-//     else                                                                                    \
-//         ((void)0)
+#define CHECK_INDEX                                                                         \
+    if (1)                                                                                  \
+    {                                                                                       \
+        uint32_t big_index = (H7 & 0x0F000000) >> 24;                                       \
+        if ((big_index / group_nums == from_group) && (big_index % group_nums == to_group)) \
+        {                                                                                   \
+            UPDATE_NONCE;                                                                   \
+        }                                                                                   \
+        else                                                                                \
+        {                                                                                   \
+            goto cnt;                                                                       \
+        }                                                                                   \
+    }                                                                                       \
+    else                                                                                    \
+        ((void)0)
 
 #define MASK0(n) (n & 0x000000FF)
 #define MASK1(n) (n & 0x0000FF00)
@@ -351,7 +349,7 @@ typedef struct
         }                        \
         else if (m0 < m1)        \
         {                        \
-            STORE_NONCE;           \
+            CHECK_INDEX;         \
         }                        \
     }                            \
     else                         \
@@ -380,16 +378,10 @@ typedef struct
 __global__ void blake3_hasher_mine(void *global_hasher)
 {
     blake3_hasher hasher = *reinterpret_cast<blake3_hasher*>(global_hasher);
-    // printf("what's left in the buf. %02x\n", hasher.buf);
     uint32_t *input = (uint32_t *)hasher.buf;
-    // for (int i = 0; i < 64; i++) {
-    //     printf("%d: %02x. ", i, hasher.buf[i]);
-    // }
-    // printf("%02x", hasher.buf[8]);
-    // printf("%.064X\n", hasher.buf);
     uint32_t *target = (uint32_t *)hasher.target;
-    // printf("%02x", hasher.target[0]);
     uint32_t target0 = target[0], target1 = target[1], target2 = target[2]; //, target3 = target[3], target4 = target[4], target5 = target[5], target6 = target[6], target7 = target[7];
+    uint32_t from_group = hasher.from_group, to_group = hasher.to_group;
     uint32_t hash_count = 0;
 
     uint32_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF; // message block
@@ -397,29 +389,20 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     uint32_t H0, H1, H2, H3, H4, H5, H6, H7;                                 // chain value
     uint32_t BLEN, FLAGS;                                                    // block len, flags
 
-    // int stride = blockDim.x * gridDim.x;
-    // uint32_t stride = blockDim.x * gridDim.x;
-    uint32_t stride = 1;
-    uint32_t tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
     uint32_t *short_nonce = &input[0x00];
     *short_nonce = (*short_nonce) / stride * stride + tid;
 
-    // while (hash_count < mining_steps)
-    while (true)
+    while (hash_count < mining_steps)
     {
         hash_count += 1;
+        // printf("count: %u\n", hash_count);
         *short_nonce += stride;
-        // printf("count: %u. ", hash_count);
-        // printf("%d: %u\n", hash_count, *short_nonce);
-        // printf("nonce: %u\n", *short_nonce);
-        // printf("nonce: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->buf);
-        // printf("hash: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->hash);
         DOUBLE_HASH;
         CHECK_POW;
         cnt:;
     }
-    // printf("buf: %u\n", (uint32_t *)reinterpret_cast<blake3_hasher*>(global_hasher)->buf);
-    // printf("nonce: %u\n", *short_nonce);
     atomicAdd(&reinterpret_cast<blake3_hasher*>(global_hasher)->hash_count, hash_count);
 }
 
