@@ -14,6 +14,7 @@
 #include "log.h"
 
 #define NONCE_LEN 24
+#define HEADER_LEN 302
 
 typedef struct blob_t {
     uint8_t *blob;
@@ -241,7 +242,7 @@ server_message_t *decode_server_message(blob_t *blob)
     new_job->target.blob = (uint8_t*) malloc(new_job->target.len * sizeof(uint8_t));
     memcpy(new_job->target.blob, target, new_job->target.len);
 
-    new_job->header_blob.len = 32;
+    new_job->header_blob.len = HEADER_LEN;
     new_job->header_blob.blob = (uint8_t*) malloc(new_job->header_blob.len * sizeof(uint8_t));
     memcpy(new_job->header_blob.blob, header, new_job->header_blob.len);
 

@@ -153,7 +153,7 @@ void reset_worker(mining_worker_t *worker) {
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
 
-    print_hex("sealhash: ", (uint8_t *) hasher_buf(worker, true) + NONCE_LEN, 32);
+    print_hex("sealhash: ", (uint8_t *) hasher_buf(worker, true) + NONCE_LEN, HEADER_LEN);
 
     store_worker_found_good_hash(worker, false);
 }
