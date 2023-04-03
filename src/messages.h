@@ -13,7 +13,7 @@
 
 #include "log.h"
 
-#define NONCE_LEN 8
+#define NONCE_LEN 24
 
 typedef struct blob_t {
     uint8_t *blob;

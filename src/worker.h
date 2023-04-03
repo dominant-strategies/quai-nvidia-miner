@@ -42,7 +42,7 @@ typedef struct mining_worker_t {
 } mining_worker_t;
 
 
-#define NONCE_LEN 8
+#define NONCE_LEN 24
 #define MINER_IMPL(worker) ((worker)->is_inline_miner ? inline_blake::blake3_hasher_mine:ref_blake::blake3_hasher_mine)
 #define HASHER(worker, host) ((host) ? (worker)->host_hasher:(worker)->device_hasher)
 #define HASHER_ELEM(hasher, is_inline, elem) ((is_inline) ? (hasher).inline_hasher->elem:(hasher).ref_hasher->elem)
@@ -135,7 +135,8 @@ void reset_worker(mining_worker_t *worker) {
     }
 
     memcpy(hasher_buf(worker, true) + NONCE_LEN, job->header_blob.blob, job->header_blob.len);
-    assert((NONCE_LEN + job->header_blob.len) == BLAKE3_BUF_LEN);
+    assert((NONCE_LEN + job->header_blob.len) == -1);
+    assert(1 == 0);
     assert((NONCE_LEN + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
     // size_t target_zero_len = 32 - job->target.len;
