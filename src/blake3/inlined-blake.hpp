@@ -244,7 +244,7 @@ typedef struct
     int found_good_hash;
 } blake3_hasher;
 
-#define DOUBLE_HASH                             \
+#define PERFORM_HASH                            \
     if (1)                                      \
     {                                           \
         H1 = IV_1;                              \
@@ -256,33 +256,6 @@ typedef struct
         H6 = IV_6;                              \
         H7 = IV_7;                              \
         HASH_BLOCK(0, 40, CHUNK_START | CHUNK_END | ROOT);         \
-        M0 = H0;                                \
-        M1 = H1;                                \
-        M2 = H2;                                \
-        M3 = H3;                                \
-        M4 = H4;                                \
-        M5 = H5;                                \
-        M6 = H6;                                \
-        M7 = H7;                                \
-        M8 = 0;                                 \
-        M9 = 0;                                 \
-        MA = 0;                                 \
-        MB = 0;                                 \
-        MC = 0;                                 \
-        MD = 0;                                 \
-        ME = 0;                                 \
-        MF = 0;                                 \
-        H0 = IV_0;                              \
-        H1 = IV_1;                              \
-        H2 = IV_2;                              \
-        H3 = IV_3;                              \
-        H4 = IV_4;                              \
-        H5 = IV_5;                              \
-        H6 = IV_6;                              \
-        H7 = IV_7;                              \
-        BLEN = 32;                              \
-        FLAGS = CHUNK_START | CHUNK_END | ROOT; \
-        COMPRESS;                               \
     }                                           \
     else                                        \
         ((void)0)
@@ -396,7 +369,7 @@ __global__ void blake3_hasher_mine(void *global_hasher)
         hash_count += 1;
         // printf("count: %u\n", hash_count);
         *short_nonce += stride;
-        DOUBLE_HASH;
+        PERFORM_HASH;
         CHECK_POW;
         cnt:;
     }
