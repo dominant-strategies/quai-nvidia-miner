@@ -394,7 +394,7 @@ int main(int argc, char **argv)
         use_device[i] = true;
     }
 
-    strcpy(broker_ip, "192.168.4.9");
+    strcpy(broker_ip, "192.168.1.35");
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)
