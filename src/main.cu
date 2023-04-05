@@ -127,12 +127,12 @@ void mine(mining_worker_t *worker)
     {
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
-        // LOG("waiting for new tasks\n");
     }
-        mining_counts[0].fetch_add(mining_steps);
-        setup_template(worker, load_template(0));
-        // LOG("starting to mine\n");
-        start_worker_mining(worker);
+    LOG("ready to mine\n");
+    mining_counts[0].fetch_add(mining_steps);
+    setup_template(worker, load_template(0));
+    // LOG("starting to mine\n");
+    start_worker_mining(worker);
 
         // duration_t elapsed = Time::now() - start;
         // LOG("=== mining time: %fs\n", elapsed.count());
@@ -191,7 +191,6 @@ void start_mining()
     assert(mining_templates_initialized == true);
 
     start_time = Time::now();
-    LOG("started timer\n");
 
     for (uint32_t i = 0; i < worker_count.load(); i++)
     {
@@ -310,7 +309,6 @@ void on_connect(uv_connect_t *req, int status)
         uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
-    LOG("the server is connected %d %p\n", status, *req);
 
     tcp = req->handle;
     register_proxy((uv_stream_t*)tcp);
@@ -385,7 +383,6 @@ int main(int argc, char **argv)
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
     LOG("GPU count: %d\n", gpu_count);
-    gpu_count = 1;
     for (int i = 0; i < gpu_count; i++)
     {
         cudaDeviceProp prop;
@@ -393,8 +390,6 @@ int main(int argc, char **argv)
         LOG("GPU #%d - %s has #%d cores\n", i, prop.name, get_device_cores(i));
         use_device[i] = true;
     }
-
-    strcpy(broker_ip, "192.168.1.35");
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)

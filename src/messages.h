@@ -231,10 +231,6 @@ server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *target = blob->blob;
     uint8_t *header = blob->blob + NONCE_LEN;
-    ssize_t len = blob->len;
-    // for (int i = 0; i < len; i++) {
-    //     LOG("Byte value: 0x%u\n", bytes[i]);
-    // }
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
 
