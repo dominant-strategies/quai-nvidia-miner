@@ -42,7 +42,6 @@ typedef struct mining_worker_t {
 } mining_worker_t;
 
 
-#define NONCE_LEN 8
 #define MINER_IMPL(worker) ((worker)->is_inline_miner ? inline_blake::blake3_hasher_mine:ref_blake::blake3_hasher_mine)
 #define HASHER(worker, host) ((host) ? (worker)->host_hasher:(worker)->device_hasher)
 #define HASHER_ELEM(hasher, is_inline, elem) ((is_inline) ? (hasher).inline_hasher->elem:(hasher).ref_hasher->elem)
