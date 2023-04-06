@@ -17,8 +17,7 @@
 #include "mining.h"
 #include "getopt.h"
 #include "log.h"
-
-// Need RPCMarshalHeaderAbsolute()
+#include<unistd.h>
 
 std::atomic<uint32_t> found_solutions{0};
 
@@ -79,7 +78,6 @@ void submit_new_block(mining_worker_t *worker)
         sprintf(&ascii_string[i*2], "%02x", temp_write_buffer[i]);
     }
     ascii_string[buf_size*2] = '\0';
-    LOG("ascii_string: %s\n", ascii_string);
 
     char method_str2[] = "\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
 
@@ -88,15 +86,14 @@ void submit_new_block(mining_worker_t *worker)
     memcpy(write_buffer + strlen(method_str) + strlen(ascii_string), method_str2, strlen(method_str2));
 
     uv_buf_t buf = uv_buf_init((char *)write_buffer, strlen(method_str) + strlen(ascii_string) + strlen(method_str2));
-    print_hex("new solution: hash", (uint8_t *) hasher_hash(worker, true), 32);
     print_hex("new solution: nonce", (uint8_t *) hasher_buf(worker, true), NONCE_LEN);
-
-    printf((const char *)write_buffer);
+    print_hex("new solution: hash", (uint8_t *) hasher_hash(worker, true), 32);
 
     uv_write_t *write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
     uint32_t buf_count = 1;
 
     uv_write(write_req, tcp, &buf, buf_count, on_write_end);
+    LOG("Sent solution to proxy\n");
     found_solutions.fetch_add(1, std::memory_order_relaxed);
 }
 
@@ -123,20 +120,19 @@ void mine(mining_worker_t *worker)
     // LOG("got new task\n");
 
 
-    while (!ready_to_mine())
+    if (!ready_to_mine())
     {
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
-    }
-    LOG("ready to mine\n");
+    } else {
     mining_counts[0].fetch_add(mining_steps);
     setup_template(worker, load_template(0));
     // LOG("starting to mine\n");
     start_worker_mining(worker);
 
-        // duration_t elapsed = Time::now() - start;
-        // LOG("=== mining time: %fs\n", elapsed.count());
-    
+    // duration_t elapsed = Time::now() - start;
+    // LOG("=== mining time: %fs\n", elapsed.count());
+    }
 }
 
 void mine_with_req(uv_work_t *req)
@@ -168,7 +164,6 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
     // LOG("starting worker callback\n");
     if (hasher_found_good_hash(worker, true))
     {
-        LOG("found good hash\n");
         store_worker_found_good_hash(worker, true);
         submit_new_block(worker);
     }
@@ -272,7 +267,7 @@ void try_to_reconnect(uv_timer_t *timer){
 // on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
-    LOG("Received %d bytes from server\n", nread);
+    // LOG("Received %d bytes from server\n", nread);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
@@ -286,6 +281,7 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
         return;
     }
 
+    LOG("Received new header from server\n");
     server_message_t* server_msg = decode_buf(buf, nread);
 
     if (server_msg) {
@@ -298,6 +294,7 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
         }
         free_server_message_except_jobs(server_msg);
     }
+
     free(buf->base);
 }
 
@@ -312,7 +309,7 @@ void on_connect(uv_connect_t *req, int status)
 
     tcp = req->handle;
     register_proxy((uv_stream_t*)tcp);
-    uv_read_start(req->handle, alloc_buffer, on_read);
+    int result = uv_read_start(req->handle, alloc_buffer, on_read);
 }
 
 void connect_to_broker(){
@@ -458,5 +455,8 @@ int main(int argc, char **argv)
 
     uv_run(loop, UV_RUN_DEFAULT);
 
-    return (0);
+    uv_loop_close(loop);
+    free(loop);
+
+    return 0;
 }
