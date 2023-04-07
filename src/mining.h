@@ -8,7 +8,6 @@
 
 void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data);
 
-// seems important 2
 void start_worker_mining(mining_worker_t *worker)
 {
     cudaSetDevice(worker->device_id);

@@ -93,6 +93,7 @@ void submit_new_block(mining_worker_t *worker)
     uint32_t buf_count = 1;
 
     uv_write(write_req, tcp, &buf, buf_count, on_write_end);
+    free(ascii_string);
     LOG("Sent solution to proxy\n");
     found_solutions.fetch_add(1, std::memory_order_relaxed);
 }
@@ -113,25 +114,21 @@ static void register_proxy(uv_stream_t* tcp)
     LOG("Proxy registered\n");
 }
 
-// seems important
 void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
-    // LOG("got new task\n");
-
 
     if (!ready_to_mine())
     {
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
-    mining_counts[0].fetch_add(mining_steps);
-    setup_template(worker, load_template(0));
-    // LOG("starting to mine\n");
-    start_worker_mining(worker);
+        mining_counts[0].fetch_add(mining_steps);
+        setup_template(worker, load_template(0));
+        start_worker_mining(worker);
 
-    // duration_t elapsed = Time::now() - start;
-    // LOG("=== mining time: %fs\n", elapsed.count());
+        // duration_t elapsed = Time::now() - start;
+        // LOG("=== mining time: %fs\n", elapsed.count());
     }
 }
 
@@ -161,14 +158,11 @@ void after_mine(uv_work_t *req, int status)
 void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
 {
     mining_worker_t *worker = (mining_worker_t *)data;
-    // LOG("starting worker callback\n");
     if (hasher_found_good_hash(worker, true))
     {
         store_worker_found_good_hash(worker, true);
         submit_new_block(worker);
     }
-
-    // LOG("starting to free templates\n");
 
     mining_template_t *template_ptr = load_worker__template(worker);
     uint32_t chain_index = 0;
@@ -243,8 +237,6 @@ uint8_t read_buf[2048 * 1024 * chain_nums];
 blob_t read_blob = {read_buf, 0};
 
 server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread) {
-    // expire_old_template();
-    // free_template(load_template(0));
     blob_t read_blob = * (blob_t*)malloc(sizeof(blob_t));
     read_blob.blob = (uint8_t*)malloc(nread * sizeof(uint8_t));
     read_blob.len = nread;
@@ -264,7 +256,6 @@ void try_to_reconnect(uv_timer_t *timer){
     uv_timer_stop(timer);
 }
 
-// on read
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
     // LOG("Received %d bytes from server\n", nread);
@@ -379,6 +370,7 @@ int main(int argc, char **argv)
 
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
+    gpu_count = 1;
     LOG("GPU count: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
     {
@@ -446,7 +438,6 @@ int main(int argc, char **argv)
     {
         uv_async_init(loop, &(mining_workers[i].async), mine_with_async);
         uv_timer_init(loop, &(mining_workers[i].timer));
-        // break;
     }
 
     uv_timer_t log_timer;

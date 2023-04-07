@@ -226,7 +226,6 @@ void extract_submit_result(uint8_t **bytes, submit_result_t *result)
     result->status = extract_bool(bytes);
 }
 
-// important: processing message
 server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *target = blob->blob;
