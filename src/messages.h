@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_MESSAGE_H
-#define ALEPHIUM_MESSAGE_H
+#ifndef QUAI_MESSAGE_H
+#define QUAI_MESSAGE_H
 
 #define __STDC_FORMAT_MACROS
 
@@ -248,4 +248,4 @@ server_message_t *decode_server_message(blob_t *blob)
     return server_message;
 }
 
-#endif // ALEPHIUM_MESSAGE_H
+#endif // QUAI_MESSAGE_H

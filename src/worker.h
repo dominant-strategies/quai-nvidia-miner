@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_WORKER_H
-#define ALEPHIUM_WORKER_H
+#ifndef QUAI_WORKER_H
+#define QUAI_WORKER_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -180,4 +180,4 @@ void setup_template(mining_worker_t *worker, mining_template_t *template_ptr) {
     store_worker__template(worker, template_ptr);
 }
 
-#endif // ALEPHIUM_WORKER_H
+#endif // QUAI_WORKER_H

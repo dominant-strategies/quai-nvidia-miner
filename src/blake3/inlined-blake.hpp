@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_INLINED_BLAKE_H
-#define ALEPHIUM_INLINED_BLAKE_H
+#ifndef QUAI_INLINED_BLAKE_H
+#define QUAI_INLINED_BLAKE_H
 
 #include "blake3-common.hpp"
 
@@ -378,4 +378,4 @@ __global__ void blake3_hasher_mine(void *global_hasher)
 
 }
 
-#endif //ALEPHIUM_INLINED_BLAKE_H
+#endif //QUAI_INLINED_BLAKE_H

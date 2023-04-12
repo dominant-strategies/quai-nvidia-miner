@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_TEMPLATE_H
-#define ALEPHIUM_TEMPLATE_H
+#ifndef QUAI_TEMPLATE_H
+#define QUAI_TEMPLATE_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -99,4 +99,4 @@ bool ready_to_mine() {
     }
 }
 
-#endif // ALEPHIUM_TEMPLATE_H
+#endif // QUAI_TEMPLATE_H

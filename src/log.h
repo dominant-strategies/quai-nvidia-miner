@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_LOG_H
-#define ALEPHIUM_LOG_H
+#ifndef QUAI_LOG_H
+#define QUAI_LOG_H
 
 #include <stdio.h>
 #include <time.h>
@@ -30,4 +30,4 @@
 
 #define LOGERR(format, ...) LOG_WITH_TS(stderr, format, ##__VA_ARGS__);
 
-#endif // ALEPHIUM_LOG_H
+#endif // QUAI_LOG_H

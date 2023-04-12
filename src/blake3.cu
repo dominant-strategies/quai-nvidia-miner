@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_BLAKE3_CU
-#define ALEPHIUM_BLAKE3_CU
+#ifndef QUAI_BLAKE3_CU
+#define QUAI_BLAKE3_CU
 
 #include <cstdio>
 #include <cstdint>
@@ -141,4 +141,4 @@ void config_cuda(int device_id, int *grid_size, int *block_size, bool* is_inline
     }
 }
 
-#endif // ALEPHIUM_BLAKE3_CU
+#endif // QUAI_BLAKE3_CU

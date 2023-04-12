@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_MINING_H
-#define ALEPHIUM_MINING_H
+#ifndef QUAI_MINING_H
+#define QUAI_MINING_H
 
 #include "blake3.cu"
 #include "log.h"
@@ -41,4 +41,4 @@ void start_worker_mining(mining_worker_t *worker)
 #endif
 }
 
-#endif // ALEPHIUM_MINING_H
+#endif // QUAI_MINING_H

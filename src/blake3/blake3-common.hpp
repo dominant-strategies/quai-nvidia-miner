@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_BLAKE3_COMMON_H
-#define ALEPHIUM_BLAKE3_COMMON_H
+#ifndef QUAI_BLAKE3_COMMON_H
+#define QUAI_BLAKE3_COMMON_H
 
 #include "../log.h"
 
@@ -39,4 +39,4 @@
 
 
 
-#endif //ALEPHIUM_BLAKE3_COMMON_H
+#endif //QUAI_BLAKE3_COMMON_H
