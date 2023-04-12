@@ -24,7 +24,6 @@ typedef struct mining_worker_t {
     int block_size;
     union hasher {
         inline_blake::blake3_hasher *inline_hasher;
-        ref_blake::blake3_hasher *ref_hasher;
     };
 
     hasher host_hasher;
@@ -42,50 +41,42 @@ typedef struct mining_worker_t {
 } mining_worker_t;
 
 
-#define MINER_IMPL(worker) ((worker)->is_inline_miner ? inline_blake::blake3_hasher_mine:ref_blake::blake3_hasher_mine)
+#define MINER_IMPL(worker) (inline_blake::blake3_hasher_mine)
 #define HASHER(worker, host) ((host) ? (worker)->host_hasher:(worker)->device_hasher)
-#define HASHER_ELEM(hasher, is_inline, elem) ((is_inline) ? (hasher).inline_hasher->elem:(hasher).ref_hasher->elem)
+#define HASHER_ELEM(hasher, is_inline, elem) ((hasher).inline_hasher->elem)
 
 
 // Helper methods
 void *hasher(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? reinterpret_cast<void *>(HASHER(self, is_host).inline_hasher)
-                                 : reinterpret_cast<void *>(HASHER(self, is_host).ref_hasher);
+    return reinterpret_cast<void *>(HASHER(self, is_host).inline_hasher);
 }
 
 void **hasher_ptr(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? reinterpret_cast<void **>(&HASHER(self, is_host).inline_hasher)
-                                 : reinterpret_cast<void **>(&HASHER(self, is_host).ref_hasher);
+    return reinterpret_cast<void **>(&HASHER(self, is_host).inline_hasher);
 }
 
 size_t hasher_len(mining_worker_t *self) {
-    return self->is_inline_miner ? sizeof(inline_blake::blake3_hasher)
-                                 : sizeof(ref_blake::blake3_hasher);
+    return sizeof(inline_blake::blake3_hasher);
 }
 
 uint8_t *hasher_buf(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? HASHER(self, is_host).inline_hasher->buf
-                                 : HASHER(self, is_host).ref_hasher->buf;
+    return HASHER(self, is_host).inline_hasher->buf;
 }
 
 uint8_t *hasher_hash(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? HASHER(self, is_host).inline_hasher->hash
-                                 : HASHER(self, is_host).ref_hasher->hash;
+    return HASHER(self, is_host).inline_hasher->hash;
 }
 
 size_t hasher_hash_len(mining_worker_t *self) {
-    return self->is_inline_miner ? sizeof(self->host_hasher.inline_hasher->hash)
-                                 : sizeof(self->host_hasher.ref_hasher->hash);
+    return sizeof(self->host_hasher.inline_hasher->hash);
 }
 
 uint32_t hasher_hash_count(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? HASHER(self, is_host).inline_hasher->hash_count
-                                 : HASHER(self, is_host).ref_hasher->hash_count;
+    return HASHER(self, is_host).inline_hasher->hash_count;
 }
 
 int hasher_found_good_hash(mining_worker_t *self, bool is_host) {
-    return self->is_inline_miner ? HASHER(self, is_host).inline_hasher->found_good_hash
-                                 : HASHER(self, is_host).ref_hasher->found_good_hash;
+    return HASHER(self, is_host).inline_hasher->found_good_hash;
 }
 
 
@@ -175,8 +166,7 @@ void mining_workers_init(int gpu_count) {
 
 ssize_t write_new_block(mining_worker_t *worker, uint8_t *write_buf) {
     job_t *job = load_worker__template(worker)->job;
-    uint8_t *nonce = worker->is_inline_miner ? worker->host_hasher.inline_hasher->buf
-                                             : worker->host_hasher.ref_hasher->buf;
+    uint8_t *nonce = worker->host_hasher.inline_hasher->buf;
     uint8_t *write_pos = write_buf;
     ssize_t message_size = NONCE_LEN + 1;
 
