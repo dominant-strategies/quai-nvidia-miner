@@ -370,7 +370,7 @@ int main(int argc, char **argv)
 
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
-    gpu_count = 1;
+    // gpu_count = 1;
     LOG("GPU count: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
     {
