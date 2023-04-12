@@ -241,9 +241,6 @@ server_message_t *decode_server_message(blob_t *blob)
     new_job->header_blob.blob = (uint8_t*) malloc(new_job->header_blob.len * sizeof(uint8_t));
     memcpy(new_job->header_blob.blob, header, new_job->header_blob.len);
 
-    // printf("%02x\n", new_job->target);
-    // printf("%llu\n", new_job->header_blob.blob[31]);
-
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
         server_message->kind = JOBS;
         server_message->job = new_job;

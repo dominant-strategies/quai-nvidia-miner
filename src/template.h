@@ -46,7 +46,7 @@ void free_template(mining_template_t *template_ptr)
 }
 
 std::atomic<mining_template_t*> mining_templates[chain_nums] = {};
-std::atomic<uint64_t> mining_counts[chain_nums] = {};
+std::atomic<uint64_t> mining_count = { 0 };
 uint64_t task_counts[chain_nums] = { 0 };
 bool mining_templates_initialized = false;
 
@@ -105,7 +105,7 @@ int32_t next_chain_to_mine()
     int32_t to_mine_index = -1;
     uint64_t least_hash_count = UINT64_MAX;
     for (int32_t i = 0; i < chain_nums; i ++) {
-        uint64_t i_hash_count = mining_counts[i].load();
+        uint64_t i_hash_count = mining_count.load();
         if (load_template(i) && (i_hash_count < least_hash_count)) {
             to_mine_index = i;
             least_hash_count = i_hash_count;

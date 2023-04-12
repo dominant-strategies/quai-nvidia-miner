@@ -11,7 +11,6 @@
 #include "uv.h"
 #include "messages.h"
 #include "blake3.cu"
-#include "pow.h"
 #include "worker.h"
 #include "template.h"
 #include "mining.h"
@@ -73,8 +72,6 @@ void submit_new_block(mining_worker_t *worker)
 
     char* ascii_string = (char*)malloc(buf_size*2 + 1);
     for (int i = 0; i < NONCE_LEN; i++) {
-        // printf("%02x. ", temp_write_buffer[i]);
-
         sprintf(&ascii_string[i*2], "%02x", temp_write_buffer[i]);
     }
     ascii_string[buf_size*2] = '\0';
@@ -123,7 +120,7 @@ void mine(mining_worker_t *worker)
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
-        mining_counts[0].fetch_add(mining_steps);
+        mining_count.fetch_add(mining_steps);
         setup_template(worker, load_template(0));
         start_worker_mining(worker);
 
@@ -166,8 +163,8 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
 
     mining_template_t *template_ptr = load_worker__template(worker);
     uint32_t chain_index = 0;
-    mining_counts[chain_index].fetch_sub(mining_steps);
-    mining_counts[chain_index].fetch_add(hasher_hash_count(worker, true));
+    mining_count.fetch_sub(mining_steps);
+    mining_count.fetch_add(hasher_hash_count(worker, true));
     total_mining_count.fetch_add(hasher_hash_count(worker, true));
     device_mining_count[worker->device_id].fetch_add(hasher_hash_count(worker, true));
     free_template(template_ptr);
@@ -194,16 +191,7 @@ void start_mining_if_needed()
 {
     if (!mining_templates_initialized)
     {
-        bool all_initialized = true;
-        for (int i = 0; i < chain_nums; i++)
-        {
-            if (load_template(i) == NULL)
-            {
-                all_initialized = false;
-                break;
-            }
-        }
-        if (all_initialized)
+        if (load_template(0) != NULL)
         {
             LOG("All templates initialized\n")
             mining_templates_initialized = true;
@@ -233,7 +221,7 @@ void log_hashrate(uv_timer_t *timer)
     }
 }
 
-uint8_t read_buf[2048 * 1024 * chain_nums];
+uint8_t read_buf[2048 * 1024];
 blob_t read_blob = {read_buf, 0};
 
 server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread) {
@@ -370,7 +358,6 @@ int main(int argc, char **argv)
 
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
-    // gpu_count = 1;
     LOG("GPU count: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
     {
