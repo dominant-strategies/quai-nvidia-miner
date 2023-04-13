@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <chrono>
 #include <mutex>
+#include <netdb.h>
 
 #include "constants.h"
 #include "uv.h"
@@ -35,7 +36,7 @@ std::atomic<uint64_t> total_mining_count;
 std::atomic<uint64_t> device_mining_count[max_gpu_num];
 bool use_device[max_gpu_num];
 
-int port = 8008;
+int port = 80;
 char broker_ip[16];
 uv_timer_t reconnect_timer;
 uv_tcp_t *uv_socket;
@@ -99,7 +100,15 @@ void mine_with_timer(uv_timer_t *timer);
 
 static void register_proxy(uv_stream_t* tcp)
 {
-    char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+    // char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+    // Modify the JSON-RPC request to include the host header
+    char method_str[] = "POST / HTTP/1.1\r\n"
+                        "Host: stratum.cyprus1.galena.quaiscan.io\r\n"  // Replace 'example.com' with your actual hostname
+                        "Content-Type: application/json\r\n"
+                        "Connection: close\r\n"
+                        "\r\n"
+                        "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+
 
     uv_buf_t buf = uv_buf_init(method_str, strlen(method_str));
 
