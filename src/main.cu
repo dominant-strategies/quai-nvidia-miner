@@ -115,19 +115,16 @@ void mine(mining_worker_t *worker)
 {
     time_point_t start = Time::now();
 
-    int32_t to_mine_index = next_chain_to_mine();
-    if (to_mine_index == -1)
+    if (!ready_to_mine())
     {
-        LOG("waiting for new tasks\n");
         worker->timer.data = worker;
         uv_timer_start(&worker->timer, mine_with_timer, 500, 0);
     } else {
-        mining_counts[to_mine_index].fetch_add(mining_steps);
-        setup_template(worker, load_template(to_mine_index));
-
+        mining_count.fetch_add(mining_steps);
+        setup_template(worker, load_template());
         start_worker_mining(worker);
 
-        duration_t elapsed = Time::now() - start;
+        // duration_t elapsed = Time::now() - start;
         // LOG("=== mining time: %fs\n", elapsed.count());
     }
 }
@@ -165,10 +162,8 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
     }
 
     mining_template_t *template_ptr = load_worker__template(worker);
-    job_t *job = template_ptr->job;
-    uint32_t chain_index = job->from_group * group_nums + job->to_group;
-    mining_counts[chain_index].fetch_sub(mining_steps);
-    mining_counts[chain_index].fetch_add(hasher_hash_count(worker, true));
+    mining_count.fetch_sub(mining_steps);
+    mining_count.fetch_add(hasher_hash_count(worker, true));
     total_mining_count.fetch_add(hasher_hash_count(worker, true));
     device_mining_count[worker->device_id].fetch_add(hasher_hash_count(worker, true));
     free_template(template_ptr);
@@ -195,17 +190,9 @@ void start_mining_if_needed()
 {
     if (!mining_templates_initialized)
     {
-        bool all_initialized = true;
-        for (int i = 0; i < chain_nums; i++)
+        if (load_template() != NULL)
         {
-            if (load_template(i) == NULL)
-            {
-                all_initialized = false;
-                break;
-            }
-        }
-        if (all_initialized)
-        {
+            LOG("All templates initialized\n")
             mining_templates_initialized = true;
             start_mining();
         }

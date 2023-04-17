@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_TEMPLATE_H
-#define ALEPHIUM_TEMPLATE_H
+#ifndef QUAI_TEMPLATE_H
+#define QUAI_TEMPLATE_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -44,19 +44,19 @@ void free_template(mining_template_t *template_ptr)
     }
 }
 
-std::atomic<mining_template_t*> mining_templates[chain_nums] = {};
-std::atomic<uint64_t> mining_counts[chain_nums] = {};
-uint64_t task_counts[chain_nums] = { 0 };
+std::atomic<mining_template_t*> mining_template = {};
+std::atomic<uint64_t> mining_count = { 0 };
+uint64_t task_count = { 0 };
 bool mining_templates_initialized = false;
 
-mining_template_t* load_template(ssize_t chain_index)
+mining_template_t* load_template()
 {
-    return atomic_load(&(mining_templates[chain_index]));
+    return atomic_load(&(mining_template));
 }
 
-void store_template(ssize_t chain_index, mining_template_t* new_template)
+void store_template(mining_template_t* new_template)
 {
-    atomic_store(&(mining_templates[chain_index]), new_template);
+    atomic_store(&(mining_template), new_template);
 }
 
 void update_templates(job_t *job)
@@ -65,46 +65,37 @@ void update_templates(job_t *job)
     new_template->job = job;
     store_template__ref_count(new_template, 1); // referred by mining_templates
 
-    ssize_t chain_index = job->from_group * group_nums + job->to_group;
-    task_counts[chain_index] += 1;
-    new_template->chain_task_count = task_counts[chain_index];
+    task_count += 1;
+    new_template->chain_task_count = task_count;
 
     // TODO: optimize with atomic_exchange
-    mining_template_t *last_template = load_template(chain_index);
+    mining_template_t *last_template = load_template();
     if (last_template) {
         free_template(last_template);
     }
-    store_template(chain_index, new_template);
+    store_template(new_template);
 }
 
 bool expire_template_for_new_block(mining_template_t *template_ptr)
 {
-    job_t *job = template_ptr->job;
-    ssize_t chain_index = job->from_group * group_nums + job->to_group;
-
-    mining_template_t *latest_template = load_template(chain_index);
+    mining_template_t *latest_template = load_template();
     if (latest_template) {
-        store_template(chain_index, NULL);
+        store_template(NULL);
         free_template(latest_template);
+        return true;
+    } else {
+        return false;
+    }
+
+    mining_templates_initialized = false;
+}
+
+bool ready_to_mine() {
+    if (load_template()) {
         return true;
     } else {
         return false;
     }
 }
 
-int32_t next_chain_to_mine()
-{
-    int32_t to_mine_index = -1;
-    uint64_t least_hash_count = UINT64_MAX;
-    for (int32_t i = 0; i < chain_nums; i ++) {
-        uint64_t i_hash_count = mining_counts[i].load();
-        if (load_template(i) && (i_hash_count < least_hash_count)) {
-            to_mine_index = i;
-            least_hash_count = i_hash_count;
-        }
-    }
-
-    return to_mine_index;
-}
-
-#endif // ALEPHIUM_TEMPLATE_H
+#endif // QUAI_TEMPLATE_H
