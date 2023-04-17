@@ -123,9 +123,6 @@ void mine(mining_worker_t *worker)
         mining_count.fetch_add(mining_steps);
         setup_template(worker, load_template());
         start_worker_mining(worker);
-
-        // duration_t elapsed = Time::now() - start;
-        // LOG("=== mining time: %fs\n", elapsed.count());
     }
 }
 
