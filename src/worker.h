@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_WORKER_H
-#define ALEPHIUM_WORKER_H
+#ifndef QUAI_WORKER_H
+#define QUAI_WORKER_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -119,21 +119,17 @@ void reset_worker(mining_worker_t *worker) {
     mining_template_t *template_ptr = worker->template_ptr.load();
     job_t *job = template_ptr->job;
 
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < NONCE_LEN; i++) {                  // Initializes the first nonce to random data
         hasher_buf(worker, true)[i] = distrib(worker->random_gen);
     }
 
-    memcpy(hasher_buf(worker, true) + 24, job->header_blob.blob, job->header_blob.len);
-    assert((24 + job->header_blob.len) == BLAKE3_BUF_LEN);
-    assert((24 + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
+    memcpy(hasher_buf(worker, true) + NONCE_LEN, job->header_blob.blob, job->header_blob.len);
+    assert((NONCE_LEN + job->header_blob.len) == BLAKE3_BUF_LEN);
+    assert((NONCE_LEN + job->header_blob.len + 63) / 64 * 64 == BLAKE3_BUF_CAP);
 
-    size_t target_zero_len = 32 - job->target.len;
-
-    memset(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), 0, target_zero_len);
-    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target) + target_zero_len, job->target.blob,
+    memcpy(HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, target), job->target.blob,
            job->target.len);
-    HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, from_group) = job->from_group;
-    HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, to_group) = job->to_group;
+
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, hash_count) = 0;
     HASHER_ELEM(worker->host_hasher, worker->is_inline_miner, found_good_hash) = false;
 
@@ -172,18 +168,11 @@ ssize_t write_new_block(mining_worker_t *worker, uint8_t *write_buf) {
     job_t *job = load_worker__template(worker)->job;
     uint8_t *nonce = worker->host_hasher.inline_hasher->buf;
     uint8_t *write_pos = write_buf;
+    ssize_t message_size = NONCE_LEN + 1;
 
-    ssize_t block_size = 24 + job->header_blob.len + job->txs_blob.len;
-    ssize_t message_size = 1 + 4 + block_size;
+    write_bytes(&write_pos, nonce, NONCE_LEN);
 
-    write_size(&write_pos, message_size);
-    write_byte(&write_pos, 0); // message type
-    write_size(&write_pos, block_size);
-    write_bytes(&write_pos, nonce, 24);
-    write_blob(&write_pos, &job->header_blob);
-    write_blob(&write_pos, &job->txs_blob);
-
-    return message_size + 4;
+    return message_size;
 }
 
 void setup_template(mining_worker_t *worker, mining_template_t *template_ptr) {
@@ -191,4 +180,4 @@ void setup_template(mining_worker_t *worker, mining_template_t *template_ptr) {
     store_worker__template(worker, template_ptr);
 }
 
-#endif // ALEPHIUM_WORKER_H
+#endif // QUAI_WORKER_H

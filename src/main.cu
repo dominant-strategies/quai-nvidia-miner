@@ -64,14 +64,34 @@ void submit_new_block(mining_worker_t *worker)
 
     const std::lock_guard<std::mutex> lock(write_mutex);
 
-    ssize_t buf_size = write_new_block(worker, write_buffer);
-    uv_buf_t buf = uv_buf_init((char *)write_buffer, buf_size);
-    print_hex("new solution", (uint8_t *) hasher_buf(worker, true), 32);
+    uint8_t temp_write_buffer[4096 * 1024];
+
+
+    char method_str[] = "{\"method\":\"quai_rawHeader\",\"params\":[\"";      // Create the JSON-RPC to proxy including the necessary hashes
+    ssize_t buf_size = write_new_block(worker, temp_write_buffer);
+
+    char* ascii_string = (char*)malloc(buf_size*2 + 1);
+    for (int i = 0; i < NONCE_LEN; i++) {
+        sprintf(&ascii_string[i*2], "%02x", temp_write_buffer[i]);
+    }
+    ascii_string[buf_size*2] = '\0';
+
+    char method_str2[] = "\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+
+    memcpy(write_buffer, method_str, strlen(method_str));
+    memcpy(write_buffer + strlen(method_str), ascii_string, strlen(ascii_string));
+    memcpy(write_buffer + strlen(method_str) + strlen(ascii_string), method_str2, strlen(method_str2));
+
+    uv_buf_t buf = uv_buf_init((char *)write_buffer, strlen(method_str) + strlen(ascii_string) + strlen(method_str2));
+    print_hex("new solution: nonce", (uint8_t *) hasher_buf(worker, true), NONCE_LEN);
+    print_hex("new solution: hash", (uint8_t *) hasher_hash(worker, true), 32);
 
     uv_write_t *write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
     uint32_t buf_count = 1;
 
     uv_write(write_req, tcp, &buf, buf_count, on_write_end);
+    free(ascii_string);
+    LOG("Sent solution to proxy\n");
     found_solutions.fetch_add(1, std::memory_order_relaxed);
 }
 
