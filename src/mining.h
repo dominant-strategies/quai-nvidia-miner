@@ -1,5 +1,5 @@
-#ifndef ALEPHIUM_MINING_H
-#define ALEPHIUM_MINING_H
+#ifndef QUAI_MINING_H
+#define QUAI_MINING_H
 
 #include "blake3.cu"
 #include "log.h"
@@ -22,7 +22,6 @@ void start_worker_mining(mining_worker_t *worker)
     TRY( cudaEventRecord(startEvent, worker->stream) );
 #endif
 
-    // blake3_hasher_mine<<<worker->grid_size, worker->block_size, 0, worker->stream>>>(worker->device_hasher);
     MINER_IMPL(worker)<<<worker->grid_size, worker->block_size, 0, worker->stream>>>(worker->device_hasher.inline_hasher);
 
 #ifdef SHOW_MINING_TIME
@@ -42,4 +41,4 @@ void start_worker_mining(mining_worker_t *worker)
 #endif
 }
 
-#endif // ALEPHIUM_MINING_H
+#endif // QUAI_MINING_H

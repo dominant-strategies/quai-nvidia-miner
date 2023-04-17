@@ -11,7 +11,6 @@
 #include "uv.h"
 #include "messages.h"
 #include "blake3.cu"
-#include "pow.h"
 #include "worker.h"
 #include "template.h"
 #include "mining.h"
@@ -353,7 +352,7 @@ int main(int argc, char **argv)
 
     int gpu_count = 0;
     cudaGetDeviceCount(&gpu_count);
-    LOG("GPU count: %d\n", gpu_count);
+    LOG("GPUs detected: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
     {
         cudaDeviceProp prop;
@@ -361,8 +360,8 @@ int main(int argc, char **argv)
         LOG("GPU #%d - %s has #%d cores\n", i, prop.name, get_device_cores(i));
         use_device[i] = true;
     }
-
-    strcpy(broker_ip, "127.0.0.1");
+  mining_workers_init(gpu_count);
+  setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
 
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)
@@ -429,5 +428,8 @@ int main(int argc, char **argv)
 
     uv_run(loop, UV_RUN_DEFAULT);
 
-    return (0);
+    uv_loop_close(loop);
+    free(loop);
+
+    return 0;
 }
