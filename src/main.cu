@@ -35,7 +35,7 @@ std::atomic<uint64_t> total_mining_count;
 std::atomic<uint64_t> device_mining_count[max_gpu_num];
 bool use_device[max_gpu_num];
 
-int port = 10973;
+int port = 3333;
 char broker_ip[16];
 uv_timer_t reconnect_timer;
 uv_tcp_t *uv_socket;
@@ -76,6 +76,20 @@ void submit_new_block(mining_worker_t *worker)
 }
 
 void mine_with_timer(uv_timer_t *timer);
+
+static void register_proxy(uv_stream_t* tcp)
+{
+    char method_str[] = "{\"method\":\"quai_submitLogin\",\"params\":[\"0x0000000000000000000000000000000000000001\",\"password\"],\"id\":1,\"jsonrpc\":\"2.0\"}\n";
+
+    uv_buf_t buf = uv_buf_init(method_str, strlen(method_str));
+
+    uv_write_t* write_req = (uv_write_t *)malloc(sizeof(uv_write_t));
+    write_req->data = method_str;
+
+    uv_write(write_req, tcp, &buf, 1, on_write_end);
+    
+    LOG("Proxy registered\n");
+}
 
 void mine(mining_worker_t *worker)
 {
@@ -199,40 +213,17 @@ void log_hashrate(uv_timer_t *timer)
     }
 }
 
-uint8_t read_buf[2048 * 1024 * chain_nums];
+uint8_t read_buf[2048 * 1024];
 blob_t read_blob = {read_buf, 0};
-server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread)
-{
-    if (read_blob.len == 0)
-    {
-        read_blob.blob = (uint8_t *)buf->base;
-        read_blob.len = nread;
-        server_message_t *message = decode_server_message(&read_blob);
-        if (message)
-        {
-            // some bytes left
-            if (read_blob.len > 0)
-            {
-                memcpy(read_buf, read_blob.blob, read_blob.len);
-                read_blob.blob = read_buf;
-            }
-            return message;
-        }
-        else
-        { // no bytes consumed
-            memcpy(read_buf, buf->base, nread);
-            read_blob.blob = read_buf;
-            read_blob.len = nread;
-            return NULL;
-        }
-    }
-    else
-    {
-        assert(read_blob.blob == read_buf);
-        memcpy(read_buf + read_blob.len, buf->base, nread);
-        read_blob.len += nread;
-        return decode_server_message(&read_blob);
-    }
+
+server_message_t *decode_buf(const uv_buf_t *buf, ssize_t nread) {
+    blob_t read_blob = * (blob_t*)malloc(sizeof(blob_t));
+    read_blob.blob = (uint8_t*)malloc(nread * sizeof(uint8_t));
+    read_blob.len = nread;
+
+    memcpy(read_blob.blob, buf->base, nread);
+
+    return decode_server_message(&read_blob);
 }
 
 void connect_to_broker();
@@ -256,31 +247,25 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 
     if (nread == 0)
     {
+        LOG("No data received\n");
         return;
     }
 
-    server_message_t *message = decode_buf(buf, nread);
-    if (message)
-    {
-        switch (message->kind)
-        {
-        case JOBS:
-            for (int i = 0; i < message->jobs->len; i++)
-            {
-                update_templates(message->jobs->jobs[i]);
-            }
-            start_mining_if_needed();
-            break;
+    LOG("Received new header from server\n");
+    server_message_t* server_msg = decode_buf(buf, nread);
 
-        case SUBMIT_RESULT:
-            LOG("submitted: %d -> %d: %d \n", message->submit_result->from_group, message->submit_result->to_group, message->submit_result->status);
-            break;
+    if (server_msg) {
+        switch (server_msg->kind)
+        {
+            case JOBS:
+                update_templates(server_msg->job);
+                start_mining_if_needed();
+                break;
         }
-        free_server_message_except_jobs(message);
+        free_server_message_except_jobs(server_msg);
     }
 
     free(buf->base);
-    // uv_close((uv_handle_t *) server, free_close_cb);
 }
 
 void on_connect(uv_connect_t *req, int status)
@@ -288,23 +273,30 @@ void on_connect(uv_connect_t *req, int status)
     if (status < 0)
     {
         LOGERR("connection error %d: might be that the full node is not reachable, try to reconnect\n", status);
-        uv_timer_start(&reconnect_timer, try_to_reconnect, 5000, 0);
+        uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
-    LOG("the server is connected %d %p\n", status, req);
 
     tcp = req->handle;
+    register_proxy((uv_stream_t*)tcp);
     uv_read_start(req->handle, alloc_buffer, on_read);
 }
 
 void connect_to_broker(){
     uv_socket = (uv_tcp_t *)malloc(sizeof(uv_tcp_t));
-    uv_tcp_init(loop, uv_socket);
     uv_tcp_nodelay(uv_socket, 1);
-    uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
+    
     struct sockaddr_in dest;
     uv_ip4_addr(broker_ip, port, &dest);
+    
+    uv_tcp_init(loop, uv_socket);
+
+    uv_tcp_bind(uv_socket, (struct sockaddr *)&dest, 0);
+
+    uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
+
     uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
+
 }
 
 bool is_valid_ip_address(char *ip_address)
