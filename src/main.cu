@@ -206,11 +206,11 @@ void log_hashrate(uv_timer_t *timer)
     time_point_t current_time = Time::now();
     if (current_time > start_time)
     {
-        duration_t eplased = current_time - start_time;
-        LOG("hashrate: %.0f MH/s ", total_mining_count.load() / eplased.count() / 1000000);
+        duration_t elapsed = current_time - start_time;
+        LOG("hashrate: %.0f MH/s ", total_mining_count.load() / elapsed.count() / 1000000);
         for (int i = 0; i < gpu_count; i++)
         {
-            LOG_WITHOUT_TS("gpu%d: %.0f MH/s ", i, device_mining_count[i].load() / eplased.count() / 1000000);
+            LOG_WITHOUT_TS("gpu%d: %.0f MH/s ", i, device_mining_count[i].load() / elapsed.count() / 1000000);
         }
         LOG_WITHOUT_TS("solutions: %u\n", found_solutions.load(std::memory_order_relaxed));
     }
@@ -258,13 +258,8 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
     server_message_t* server_msg = decode_buf(buf, nread);
 
     if (server_msg) {
-        switch (server_msg->kind)
-        {
-            case JOBS:
-                update_templates(server_msg->job);
-                start_mining_if_needed();
-                break;
-        }
+        update_templates(server_msg->job);
+        start_mining_if_needed();
         free_server_message_except_jobs(server_msg);
     }
 
