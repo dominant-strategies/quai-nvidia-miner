@@ -288,22 +288,6 @@ typedef struct
     else                                                    \
         ((void)0)
 
-#define CHECK_INDEX                                                                         \
-    if (1)                                                                                  \
-    {                                                                                       \
-        uint32_t big_index = (H7 & 0x0F000000) >> 24;                                       \
-        if ((big_index / group_nums == from_group) && (big_index % group_nums == to_group)) \
-        {                                                                                   \
-            UPDATE_NONCE;                                                                   \
-        }                                                                                   \
-        else                                                                                \
-        {                                                                                   \
-            goto cnt;                                                                       \
-        }                                                                                   \
-    }                                                                                       \
-    else                                                                                    \
-        ((void)0)
-
 #define MASK0(n) (n & 0x000000FF)
 #define MASK1(n) (n & 0x0000FF00)
 #define MASK2(n) (n & 0x00FF0000)
@@ -319,7 +303,7 @@ typedef struct
         }                        \
         else if (m0 < m1)        \
         {                        \
-            CHECK_INDEX;         \
+            UPDATE_NONCE;        \
         }                        \
     }                            \
     else                         \
