@@ -237,8 +237,6 @@ typedef struct
     uint8_t hash[32]; // 64 bytes needed as hash will used as block words as well
 
     uint8_t target[32];
-    uint32_t from_group;
-    uint32_t to_group;
 
     uint32_t hash_count;
     int found_good_hash;
@@ -335,7 +333,6 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     uint32_t *input = (uint32_t *)hasher.buf;
     uint32_t *target = (uint32_t *)hasher.target;
     uint32_t target0 = target[0], target1 = target[1], target2 = target[2]; //, target3 = target[3], target4 = target[4], target5 = target[5], target6 = target[6], target7 = target[7];
-    uint32_t from_group = hasher.from_group, to_group = hasher.to_group;
     uint32_t hash_count = 0;
 
     uint32_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF; // message block

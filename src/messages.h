@@ -94,53 +94,18 @@ void free_job(job_t *job) {
     free(job);
 }
 
-typedef struct submit_result_t {
-    int from_group;
-    int to_group;
-    bool status;
-} submit_result_t;
-
-typedef enum server_message_kind {
-    JOBS,
-    SUBMIT_RESULT,
-} server_message_kind;
-
 typedef struct server_message_t {
-    server_message_kind kind;
-    union {
         job_t *job;
-        submit_result_t *submit_result;
-    };
 } server_message_t;
 
 void free_server_message(server_message_t *message)
 {
-    switch (message->kind)
-    {
-    case JOBS:
-        free(message->job);
-        break;
-
-    case SUBMIT_RESULT:
-        free(message->submit_result);
-        break;
-    }
-
+    free(message->job);
     free(message);
 }
 
 void free_server_message_except_jobs(server_message_t *message)
 {
-    switch (message->kind)
-    {
-    case JOBS:
-        break;
-
-    case SUBMIT_RESULT:
-        free(message->submit_result);
-        break;
-    }
-
     free(message);
 }
 
@@ -216,13 +181,6 @@ void extract_blob(uint8_t **bytes, blob_t *blob)
 
 }
 
-void extract_submit_result(uint8_t **bytes, submit_result_t *result)
-{
-    result->from_group = extract_size(bytes);
-    result->to_group = extract_size(bytes);
-    result->status = extract_bool(bytes);
-}
-
 server_message_t *decode_server_message(blob_t *blob)
 {
     uint8_t *target = blob->blob;
@@ -239,8 +197,7 @@ server_message_t *decode_server_message(blob_t *blob)
     memcpy(new_job->header_blob.blob, header, new_job->header_blob.len);
 
     server_message_t *server_message = (server_message_t *)malloc(sizeof(server_message_t));
-        server_message->kind = JOBS;
-        server_message->job = new_job;
+    server_message->job = new_job;
     
     return server_message;
 }
