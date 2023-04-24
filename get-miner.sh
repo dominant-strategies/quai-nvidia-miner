@@ -13,7 +13,7 @@ sudo apt install -y build-essential nvidia-cuda-toolkit cmake
 
 echo "Installing conan"
 temp_file=$(mktemp --suffix=.deb)
-curl -L https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu-64.deb -o $temp_file
+curl -L https://github.com/conan-io/conan/releases/download/1.59.0/conan-ubuntu-64.deb -o $temp_file
 sudo apt install $temp_file
 rm -f $temp_file
 
