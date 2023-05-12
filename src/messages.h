@@ -183,14 +183,13 @@ void extract_blob(uint8_t **bytes, blob_t *blob)
 
 server_message_t *decode_server_message(blob_t *blob)
 {
-    uint8_t *target = blob->blob;
-    uint8_t *header = blob->blob + TARGET_LEN;
+    uint8_t *header = blob->blob;
 
     job_t* new_job = (job_t*) malloc(sizeof(job_t));
 
     new_job->target.len = TARGET_LEN;
     new_job->target.blob = (uint8_t*) malloc(new_job->target.len * sizeof(uint8_t));
-    memcpy(new_job->target.blob, target, new_job->target.len);
+    // memcpy(new_job->target.blob, target, new_job->target.len);
 
     new_job->header_blob.len = HEADER_LEN;
     new_job->header_blob.blob = (uint8_t*) malloc(new_job->header_blob.len * sizeof(uint8_t));
