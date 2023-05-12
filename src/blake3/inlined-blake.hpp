@@ -343,7 +343,8 @@ __global__ void blake3_hasher_mine(void *global_hasher)
     int stride = blockDim.x * gridDim.x;
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     uint32_t *short_nonce = &input[0x00];
-    *short_nonce = (*short_nonce) / stride * stride + tid;
+    // *short_nonce = (*short_nonce) / stride * stride + tid;
+    *short_nonce = stride + tid;
 
     while (hash_count < mining_steps)
     {
