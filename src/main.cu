@@ -274,6 +274,7 @@ void on_connect(uv_connect_t *req, int status)
         uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
+    LOG("Connecting");
 
     tcp = req->handle;
     register_proxy((uv_stream_t*)tcp);
@@ -292,6 +293,8 @@ void connect_to_broker(){
     uv_tcp_bind(uv_socket, (struct sockaddr *)&dest, 0);
 
     uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
+
+    LOG("TCP made to broker %s:%d\n", broker_ip, port);
 
     uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
 
@@ -410,6 +413,7 @@ int main(int argc, char **argv)
     loop = uv_default_loop();
     uv_timer_init(loop, &reconnect_timer);
     connect_to_broker();
+    LOG("Connected to broker\n")
 
     for (int i = 0; i < worker_count; i++)
     {
