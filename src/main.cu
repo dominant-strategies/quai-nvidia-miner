@@ -243,11 +243,13 @@ void try_to_reconnect(uv_timer_t *timer){
 std::mutex read_mutex;
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
+    LOG("on_read\n");
     std::lock_guard<std::mutex> lock(read_mutex);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
         uv_timer_start(&reconnect_timer, try_to_reconnect, 5000, 0);
+        uv_read_stop(server);
         return;
     }
 
@@ -278,28 +280,40 @@ void on_connect(uv_connect_t *req, int status)
         uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
-
+    LOG("Connecting\n");
     tcp = req->handle;
     if(uv_read_start(req->handle, alloc_buffer, on_read) == 0){
+        LOG("finished read start\n");
         register_proxy((uv_stream_t*)tcp);
     }
 }
 
 void connect_to_broker(){
     uv_socket = (uv_tcp_t *)malloc(sizeof(uv_tcp_t));
+    int init_status = uv_tcp_init(loop, uv_socket);
+    if (init_status) {
+        LOG("uv_tcp_init error: %s\n", uv_strerror(init_status));
+        return;
+    }
+    LOG("Initialized\n");
+
     uv_tcp_nodelay(uv_socket, 1);
-    
+
     struct sockaddr_in dest;
-    uv_ip4_addr(broker_ip, port, &dest);
-    
-    uv_tcp_init(loop, uv_socket);
-
-    uv_tcp_bind(uv_socket, (struct sockaddr *)&dest, 0);
-
     uv_connect = (uv_connect_t *)malloc(sizeof(uv_connect_t));
 
-    uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
+    int addr_status = uv_ip4_addr(broker_ip, port, &dest);
+    if (addr_status) {
+        LOG("uv_ip4_addr error: %s\n", uv_strerror(addr_status));
+        return;
+    }
 
+    int connect_status = uv_tcp_connect(uv_connect, uv_socket, (const struct sockaddr *)&dest, on_connect);
+    if (connect_status) {
+        LOG("uv_tcp_connect error: %s\n", uv_strerror(connect_status));
+        return;
+    }
+    LOG("connected TCP socket\n");
 }
 
 bool is_valid_ip_address(char *ip_address)
@@ -428,8 +442,8 @@ int main(int argc, char **argv)
 
     uv_run(loop, UV_RUN_DEFAULT);
 
-    uv_loop_close(loop);
-    free(loop);
+    // uv_loop_close(loop);
+    // free(loop);
 
     return 0;
 }
