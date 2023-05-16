@@ -153,6 +153,7 @@ void worker_stream_callback(cudaStream_t stream, cudaError_t status, void *data)
     mining_worker_t *worker = (mining_worker_t *)data;
     if (hasher_found_good_hash(worker, true))
     {
+        LOG("Found good hash\n");
         store_worker_found_good_hash(worker, true);
         submit_new_block(worker);
     }
