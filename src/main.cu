@@ -239,8 +239,10 @@ void try_to_reconnect(uv_timer_t *timer){
     uv_timer_stop(timer);
 }
 
+std::mutex read_mutex;
 void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 {
+    std::lock_guard<std::mutex> lock(read_mutex);
     if (nread < 0)
     {
         LOGERR("error on_read %ld: might be that the full node is not synced, or miner wallets are not setup, try to reconnect\n", nread);
