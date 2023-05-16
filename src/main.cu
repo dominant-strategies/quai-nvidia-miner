@@ -254,6 +254,8 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
         return;
     }
 
+    LOG("Received %d bytes\n", nread);
+
     LOG("Received new header from server\n");
     server_message_t* server_msg = decode_buf(buf, nread);
 
@@ -268,16 +270,16 @@ void on_read(uv_stream_t *server, ssize_t nread, const uv_buf_t *buf)
 
 void on_connect(uv_connect_t *req, int status)
 {
-    if (status < 0)
-    {
+    if (status < 0){
         LOGERR("connection error %d: might be that the full node is not reachable, try to reconnect\n", status);
         uv_timer_start(&reconnect_timer, try_to_reconnect, 1000, 0);
         return;
     }
 
     tcp = req->handle;
-    register_proxy((uv_stream_t*)tcp);
-    uv_read_start(req->handle, alloc_buffer, on_read);
+    if(uv_read_start(req->handle, alloc_buffer, on_read) == 0){
+        register_proxy((uv_stream_t*)tcp);
+    }
 }
 
 void connect_to_broker(){
