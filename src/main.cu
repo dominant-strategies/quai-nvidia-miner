@@ -400,9 +400,9 @@ int main(int argc, char **argv)
     }
     LOG("will connect to broker @%s:%d\n", broker_ip, port);
 
-    #ifdef __linux__
-    signal(SIGPIPE, SIG_IGN);
-    #endif
+    // #ifdef __linux__
+    // signal(SIGPIPE, SIG_IGN);
+    // #endif
 
     mining_workers_init(gpu_count);
     setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
