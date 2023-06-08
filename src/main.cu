@@ -355,9 +355,6 @@ int main(int argc, char **argv)
         LOG("GPU #%d - %s has #%d cores\n", i, prop.name, get_device_cores(i));
         use_device[i] = true;
     }
-  mining_workers_init(gpu_count);
-  setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
-
     int command;
     while ((command = getopt(argc, argv, "p:g:a:")) != -1)
     {
@@ -391,6 +388,7 @@ int main(int argc, char **argv)
                     exit(1);
                 }
                 use_device[device] = true;
+                gpu_count = 1;
             }
             break;
         default:
@@ -398,6 +396,9 @@ int main(int argc, char **argv)
             exit(1);
         }
     }
+
+    mining_workers_init(gpu_count);
+    setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
     LOG("will connect to broker @%s:%d\n", broker_ip, port);
 
     #ifdef __linux__
