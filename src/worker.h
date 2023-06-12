@@ -156,11 +156,17 @@ void store_req_data(ssize_t worker_id, mining_worker_t *worker) {
     atomic_store(&(mining_req->worker), worker);
 }
 
-void mining_workers_init(int gpu_count) {
-    for (size_t i = 0; i < gpu_count * parallel_mining_works_per_gpu; i++) {
-        mining_worker_t *worker = mining_workers + i;
-        mining_worker_init(worker, (uint32_t) i, i % gpu_count);
-        store_req_data(i, worker);
+void mining_workers_init(int gpu_count, bool use_device[]) {
+    size_t worker_id = 0;
+    for (size_t i = 0; i < gpu_count; i++) {
+        if (use_device[i]) {
+            for(size_t j = 0; j < parallel_mining_works_per_gpu; j++) {
+                mining_worker_t *worker = mining_workers + worker_id;
+                mining_worker_init(worker, (uint32_t) worker_id, i);
+                store_req_data(worker_id, worker);
+                worker_id++;
+            }
+        }
     }
 }
 
