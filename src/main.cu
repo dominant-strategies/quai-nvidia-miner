@@ -346,6 +346,7 @@ int main(int argc, char **argv)
     LOG("Running gpu-miner version : %s\n", MINER_VERSION);
 
     int gpu_count = 0;
+    int used_devices = 0;
     cudaGetDeviceCount(&gpu_count);
     LOG("GPUs detected: %d\n", gpu_count);
     for (int i = 0; i < gpu_count; i++)
@@ -388,7 +389,7 @@ int main(int argc, char **argv)
                     exit(1);
                 }
                 use_device[device] = true;
-                gpu_count = 1;
+                used_devices += 1;
             }
             break;
         default:
@@ -397,16 +398,13 @@ int main(int argc, char **argv)
         }
     }
 
-    mining_workers_init(gpu_count);
-    setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
+    mining_workers_init(gpu_count, use_device);
+    setup_gpu_worker_count(used_devices, used_devices * parallel_mining_works_per_gpu);
     LOG("will connect to broker @%s:%d\n", broker_ip, port);
 
     #ifdef __linux__
     signal(SIGPIPE, SIG_IGN);
     #endif
-
-    mining_workers_init(gpu_count);
-    setup_gpu_worker_count(gpu_count, gpu_count * parallel_mining_works_per_gpu);
 
     loop = uv_default_loop();
     uv_timer_init(loop, &reconnect_timer);
